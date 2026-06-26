@@ -6,9 +6,8 @@ import MileTeam from '@/models/MileTeam';
 import MileTeamMember from '@/models/MileTeamMember';
 import TeamSettingsClient from './TeamSettingsClient';
 
-export default async function TeamSettingsPage({ params }: { params: Promise<{ teamId: string }> | { teamId: string } }) {
-  const resolvedParams = await Promise.resolve(params);
-  const teamId = resolvedParams.teamId;
+export default async function TeamSettingsPage({ params }: { params: Promise<{ teamId: string }> }) {
+  const { teamId } = await params;
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
