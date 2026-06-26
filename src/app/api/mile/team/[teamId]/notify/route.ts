@@ -6,10 +6,10 @@ import { authOptions } from '@/lib/auth'; // Ensure this exists, or use your cus
 
 export async function POST(
   request: Request,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
-    const { teamId } = params;
+    const { teamId } = await params;
     // 세션(로그인 유저) 확인
     const session = await getServerSession(authOptions);
     if (!session || !session.user || !session.user.id) {
