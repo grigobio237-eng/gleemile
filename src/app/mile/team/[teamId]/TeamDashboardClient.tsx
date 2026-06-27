@@ -16,13 +16,15 @@ import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import Image from 'next/image';
 
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 import { DynamicBlockBoard } from '@/components/dashboard/DynamicBlockBoard';
 import { TeamChatRoom } from '@/components/chat/TeamChatRoom';
 import { TeamBlock, isOkrBlock, isAcwrBlock } from '@/types/firebase';
 import { NotificationSettingsSheet } from '@/components/user/NotificationSettingsSheet';
+import { WellnessBlock as WellnessBlockType, wellnessBlockConverter } from '@/types/wellness';
+import { WellnessWidgetFactory } from '@/components/wellness/WellnessWidgetFactory';
 
 // --- 코어 모듈 ---
 import { WellnessBlock } from '@/components/blocks/WellnessBlock';
@@ -127,6 +129,10 @@ export default function TeamDashboardClient({ initialTeamInfo }: { initialTeamIn
   const [blocks, setBlocks] = useState<TeamBlock[]>([]);
   const [editingBlocks, setEditingBlocks] = useState(false);
 
+  // Wellness State (HUD)
+  const [wellnessBlocks, setWellnessBlocks] = useState<WellnessBlockType[]>([]);
+  const [wellnessLoading, setWellnessLoading] = useState(true);
+
   const handleTabSwitch = (tab: 'dashboard' | 'chat') => {
     if (tab === 'chat' && teamInfo.membership.role === 'guest') {
       setAuthModalOpen(true);
@@ -154,6 +160,79 @@ export default function TeamDashboardClient({ initialTeamInfo }: { initialTeamIn
 
     return () => unsubscribe();
   }, [teamInfo.team._id]);
+
+  // Wellness HUD 실시간 동기화 리스너
+  useEffect(() => {
+    if (!teamInfo.team._id || !session?.user?.id) return;
+    
+    // 부드러운 스켈레톤 트랜지션을 위한 임시 로딩 타이머
+    const loadingTimer = setTimeout(() => setWellnessLoading(false), 800);
+    
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    // 유저 개인 격리 경로 타겟팅 (Privacy Isolation)
+    const memberPath = `team_members/${teamInfo.team._id}_${session.user.id}`;
+    
+    const unsubscribes: (() => void)[] = [];
+    
+    // 1. WellnessCheck
+    const wcRef = doc(db, memberPath, 'wellnessCheckData', today).withConverter(wellnessBlockConverter);
+    unsubscribes.push(onSnapshot(wcRef, (snap) => {
+      setWellnessBlocks(prev => {
+        const others = prev.filter(b => b.type !== 'WELLNESS_CHECK');
+        return snap.exists() ? [...others, snap.data()] : others;
+      });
+    }));
+
+    // 2. SleepLog
+    const sleepRef = doc(db, memberPath, 'sleepData', today).withConverter(wellnessBlockConverter);
+    unsubscribes.push(onSnapshot(sleepRef, (snap) => {
+      setWellnessBlocks(prev => {
+        const others = prev.filter(b => b.type !== 'SLEEP_LOG');
+        return snap.exists() ? [...others, snap.data()] : others;
+      });
+    }));
+
+    // 3. RecoveryScore
+    const recoveryRef = doc(db, memberPath, 'recoveryData', today).withConverter(wellnessBlockConverter);
+    unsubscribes.push(onSnapshot(recoveryRef, (snap) => {
+      setWellnessBlocks(prev => {
+        const others = prev.filter(b => b.type !== 'RECOVERY_SCORE');
+        return snap.exists() ? [...others, snap.data()] : others;
+      });
+    }));
+
+    // 4. UserMood (가장 최근 기록 1건)
+    const moodQuery = query(
+      collection(db, memberPath, 'moodLogs').withConverter(wellnessBlockConverter),
+      orderBy('createdAt', 'desc'),
+      limit(1)
+    );
+    unsubscribes.push(onSnapshot(moodQuery, (snap) => {
+      setWellnessBlocks(prev => {
+        const others = prev.filter(b => b.type !== 'USER_MOOD');
+        return !snap.empty ? [...others, snap.docs[0].data()] : others;
+      });
+    }));
+
+    // 5. RecoveryReport (가장 최근 리포트 1건)
+    const reportQuery = query(
+      collection(db, memberPath, 'recoveryReports').withConverter(wellnessBlockConverter),
+      orderBy('createdAt', 'desc'),
+      limit(1)
+    );
+    unsubscribes.push(onSnapshot(reportQuery, (snap) => {
+      setWellnessBlocks(prev => {
+        const others = prev.filter(b => b.type !== 'RECOVERY_REPORT');
+        return !snap.empty ? [...others, snap.docs[0].data()] : others;
+      });
+    }));
+
+    return () => {
+      clearTimeout(loadingTimer);
+      unsubscribes.forEach(unsub => unsub());
+    };
+  }, [teamInfo.team._id, session?.user?.id]);
 
   const handleShareInvite = async () => {
     const inviteUrl = `${window.location.origin}/invite/${teamInfo.team._id}`;
@@ -403,7 +482,44 @@ export default function TeamDashboardClient({ initialTeamInfo }: { initialTeamIn
               </div>
             )}
 
-            {/* 대시보드 렌더링 영역 */}
+            {/* 웰니스 HUD (Head-Up Display) 영역 */}
+            <div className="mb-8">
+              <h3 className="text-lg font-black text-obsidian mb-4 px-1 flex items-center gap-2">
+                <ActivitySquare className="w-5 h-5 text-emerald-500" />
+                오늘의 웰니스 리포트
+              </h3>
+              
+              {wellnessLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm animate-pulse h-32">
+                      <div className="w-8 h-8 rounded-full bg-slate-200 mb-4"></div>
+                      <div className="h-4 bg-slate-200 rounded w-1/3 mb-2"></div>
+                      <div className="h-3 bg-slate-100 rounded w-full"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : wellnessBlocks.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {wellnessBlocks.map((block, idx) => (
+                    <WellnessWidgetFactory key={`${block.type}-${idx}`} block={block} />
+                  ))}
+                </div>
+              ) : (
+                <div className="p-6 bg-gradient-to-br from-slate-50 to-white rounded-2xl border border-slate-100 shadow-sm text-center">
+                  <div className="w-12 h-12 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <ActivitySquare className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-700 mb-1">오늘의 웰니스 리포트가 아직 비어있습니다.</h4>
+                  <p className="text-xs text-slate-500 mb-4">지금 컨디션을 기록하고 맞춤 케어를 시작하세요.</p>
+                  <Button className="rounded-xl bg-obsidian text-white hover:bg-slate-800 text-xs h-9">
+                    <Plus className="w-3 h-3 mr-1" /> 기록하기
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* 대시보드 렌더링 영역 (기존 레거시 믹스) */}
             <DynamicBlockBoard 
               blocks={blocks}
               editable={editingBlocks}

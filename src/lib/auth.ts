@@ -8,6 +8,7 @@ import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
+import { adminDb } from '@/lib/firebase/admin';
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -198,7 +199,7 @@ export const authOptions: AuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user, account, profile }) {
+    async jwt({ token, user, account, profile, trigger, session }) {
       // JWT 토큰에 소셜 정보 포함
       if (account) {
         token.provider = account.provider;
@@ -255,6 +256,28 @@ export const authOptions: AuthOptions = {
             // 모임 플랫폼 연동
             token.mileRole = dbUser.mileRole || null;
             token.activeTeamId = dbUser.activeTeamId?.toString() || null;
+            
+            // 🔥 session.update() 트리거 대응 (새로운 팀 가입 시)
+            if (trigger === 'update' && session?.activeTeamId) {
+              token.activeTeamId = session.activeTeamId;
+            }
+
+            // 🔥 [Bucket 1] Firestore 실시간 권한 룩업 (Session Sync)
+            // MongoDB의 낡은 권한 대신, Firestore의 team_members를 직접 찔러 최신 권한을 가져옵니다.
+            if (token.activeTeamId && token.id) {
+              try {
+                const memberRef = adminDb.collection('team_members').doc(`${token.activeTeamId}_${token.id}`);
+                const memberSnap = await memberRef.get();
+                if (memberSnap.exists) {
+                  const memberData = memberSnap.data();
+                  if (memberData?.status === 'active') {
+                    token.mileRole = memberData.role; // Firestore의 최신 권한(director, manager 등)으로 덮어쓰기
+                  }
+                }
+              } catch (fsErr) {
+                console.error('[Auth JWT] Firestore team_members lookup failed:', fsErr);
+              }
+            }
             
             // 추천 코드가 없는 경우 자동 생성 (ID 기반)
             if (!dbUser.referralCode) {
