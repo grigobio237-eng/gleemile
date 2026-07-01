@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: "Gleemile | 우리 팀의 즐거운 기록",
   description: "스포츠 팀의 실시간 데이터 시너지와 철통 보안 웰니스 관리를 위한 고성능 라운지",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/images/happy.webp",
     apple: "/images/confident.png"
   },
   manifest: "/manifest.json",
