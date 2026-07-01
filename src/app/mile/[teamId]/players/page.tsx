@@ -1,0 +1,279 @@
+'use client';
+
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSession } from 'next-auth/react';
+import { useSearchParams, useParams } from 'next/navigation';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Loader2, Users, ArrowLeft, Activity, BarChart3, User
+} from 'lucide-react';
+import Link from 'next/link';
+import { normalizeRole, ROLE_LABELS } from '@/types/role';
+import { db } from '@/lib/firebase';
+import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
+
+function PlayersContent() {
+  const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const params = useParams();
+  const teamId = params?.teamId as string || 'default-team';
+  const playerId = searchParams?.get('id') || null;
+
+  const [playerData, setPlayerData] = useState<any>(null);
+  const [squad, setSquad] = useState<any[]>([]);
+  const [teamInfo, setTeamInfo] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+  }, [playerId, teamId]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // 1. 팀 정보 가져오기
+      const teamDocRef = doc(db, 'teams', teamId);
+      const teamDocSnap = await getDoc(teamDocRef);
+      if (teamDocSnap.exists()) {
+        setTeamInfo({ team: { _id: teamId, teamName: teamDocSnap.data().name || '클럽' } });
+      } else {
+        setTeamInfo({ team: { _id: teamId, teamName: '알 수 없는 클럽' } });
+      }
+
+      // 2. 멤버 목록 가져오기
+      const membersRef = collection(db, `teams/${teamId}/member_summaries`);
+      const membersSnap = await getDocs(membersRef);
+      const membersList: any[] = [];
+      
+      membersSnap.forEach(docSnap => {
+        const data = docSnap.data();
+        membersList.push({
+          userId: docSnap.id,
+          name: data.name || '알 수 없음',
+          role: data.role || 'member',
+          avatar: data.avatar || null,
+          checkedIn: false, // 임시 처리
+        });
+      });
+      
+      if (playerId) {
+        // TODO: 특정 플레이어 상세 정보 연동
+        setPlayerData({ checks: [], acwr: { acwr: 0, zone: 'optimal', acuteLoad: 0, chronicLoad: 0 }, stats: { totalDays: 0, avgWellness: 0, avgLoad: 0 } });
+      } else {
+        setSquad(membersList);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FAF9F6] flex items-center justify-center font-sans">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+      </div>
+    );
+  }
+
+  // 팀원/스터디원 상세 뷰
+  if (playerId && playerData) {
+    const { checks, acwr, stats } = playerData;
+
+    return (
+      <div className="min-h-screen bg-[#FAF9F6] p-4 pb-24 font-sans selection:bg-emerald-200">
+        <div className="max-w-lg mx-auto space-y-6 pt-4 md:pt-24">
+          <div>
+            <Link href={`/mile/${teamId}/players`} className="text-slate hover:text-obsidian inline-flex items-center gap-1 text-sm mb-1">
+              <ArrowLeft className="w-4 h-4" /> 팀원/스터디원 명단
+            </Link>
+            <h1 className="text-2xl font-black text-obsidian flex items-center gap-2">
+              <User className="w-6 h-6" /> 팀원/스터디원 상세 기록
+            </h1>
+          </div>
+
+          {/* ACWR */}
+          {acwr && acwr.acwr > 0 && (
+            <Card className={`rounded-2xl border-2 shadow-xl ${
+              acwr.zone === 'optimal' ? 'border-green-300 bg-green-50' :
+              acwr.zone === 'caution' ? 'border-yellow-300 bg-yellow-50' :
+              acwr.zone === 'danger' ? 'border-red-300 bg-red-50' : 'border-primary/30 bg-blue-50'
+            }`}>
+              <CardContent className="p-6 text-center space-y-2">
+                <p className="text-sm font-bold opacity-70">ACWR (부하 비율)</p>
+                <p className="font-black text-xl">{acwr.acwr}</p>
+                <Badge className="bg-white/50 border-none font-bold">{acwr.zoneLabel}</Badge>
+                <div className="grid grid-cols-2 gap-3 pt-2 text-sm">
+                  <div className="bg-white/40 rounded-xl p-2">
+                    <p className="text-xs opacity-60">급성 (7일)</p>
+                    <p className="font-black">{acwr.acuteLoad} AU</p>
+                  </div>
+                  <div className="bg-white/40 rounded-xl p-2">
+                    <p className="text-xs opacity-60">만성 (28일)</p>
+                    <p className="font-black">{acwr.chronicLoad} AU/주</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 통계 */}
+          <Card className="rounded-2xl border-none shadow-xl">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-2xl font-black text-green-600">{stats?.totalDays || 0}</p>
+                  <p className="text-xs text-slate font-bold">기록 일수</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-black text-primary">{stats?.avgWellness || 0}</p>
+                  <p className="text-xs text-slate font-bold">평균 피로</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-black text-secondary">{stats?.avgLoad || 0}</p>
+                  <p className="text-xs text-slate font-bold">평균 DCL</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 웰니스 이력 */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-black text-slate uppercase px-1">웰니스 이력</h3>
+            {checks?.slice(0, 14).map((check: any) => (
+              <Card key={check._id} className="rounded-2xl border-none shadow-md">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold text-slate">{check.date}</span>
+                    <span className={`text-lg font-black ${
+                      check.mentalStrainIndex >= 4 ? 'text-red-600' :
+                      check.mentalStrainIndex >= 3 ? 'text-yellow-600' : 'text-green-600'
+                    }`}>{check.mentalStrainIndex}</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1 text-center text-[10px]">
+                    {[
+                      { l: '수면', v: check.sleep },
+                      { l: '피로', v: check.fatigue },
+                      { l: '스트레스', v: check.stress },
+                      { l: '긴장', v: check.tension },
+                    ].map((item) => (
+                      <div key={item.l} className={`py-1 rounded-lg font-bold flex flex-col items-center justify-center ${
+                        item.v >= 4 ? 'bg-red-100 text-red-700' :
+                        item.v >= 3 ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
+                      }`}>
+                        <span>{item.l} {item.v}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {check.dailyCognitiveLoad && (
+                    <p className="text-xs text-primary font-bold mt-2">DCL: {check.dailyCognitiveLoad} AU (Volume {check.collaborationVolume})</p>
+                  )}
+                  {check.injuryNote && (
+                    <p className="text-xs text-red-500 mt-1">⚠️ {check.injuryNote}</p>
+                  )}
+                  {check.notes && Object.values(check.notes).some(v => v) && (
+                    <div className="mt-2.5 pt-2 border-t border-line flex flex-wrap gap-1.5">
+                      {Object.entries(check.notes).map(([key, val]) => {
+                        if (!val) return null;
+                        const labels: Record<string, string> = {
+                          sleep: '수면',
+                          fatigue: '피로',
+                          stress: '스트레스',
+                          tension: '긴장'
+                        };
+                        return (
+                          <div key={key} className="text-[10px] bg-surface border border-line text-obsidian px-2 py-0.5 rounded-lg flex items-center gap-1 font-bold">
+                            <span className="text-[9px] text-green-600 font-black">[{labels[key] || key}]</span>
+                            <span className="line-clamp-1">{val as string}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 팀원/스터디원 명단 뷰 (기본)
+  return (
+    <div className="min-h-screen bg-[#FAF9F6] p-4 pb-24 font-sans selection:bg-emerald-200">
+      <div className="max-w-lg mx-auto space-y-6 pt-4 md:pt-24">
+        <div>
+          <Link href={`/mile/${teamId}/dashboard`} className="text-slate hover:text-obsidian inline-flex items-center gap-1 text-sm mb-1">
+            <ArrowLeft className="w-4 h-4" /> 클럽하우스 홈
+          </Link>
+          <h1 className="text-2xl font-black text-obsidian flex items-center gap-2">
+            <Users className="w-6 h-6" /> 팀원/스터디원 명단
+          </h1>
+          {teamInfo && (
+            <p className="text-sm text-slate mt-1">{teamInfo.team?.teamName} • 팀원/스터디원 {squad.length}명</p>
+          )}
+        </div>
+
+        {squad.length === 0 ? (
+          <div className="py-20 text-center flex flex-col items-center">
+            <Users className="w-12 h-12 text-emerald-200 mb-4 animate-pulse" />
+            <p className="text-slate-500 font-bold">아직 명단이 없어요</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {squad.map((player) => {
+              const hasCheck = player.checkedIn && player.todayCheck;
+              const score = player.todayCheck?.wellnessScore;
+              return (
+                <Link key={player.userId} href={`/mile/${teamId}/players?id=${player.userId}`}>
+                  <Card className="rounded-2xl border-none shadow-lg hover:shadow-xl transition-all cursor-pointer mb-3">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        {hasCheck && (
+                          <div className={`w-3 h-3 rounded-full ${
+                            score >= 4 ? 'bg-green-500' : score >= 3 ? 'bg-yellow-400' : 'bg-red-500'
+                          }`} />
+                        )}
+                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-black text-sm">
+                          <User className="w-5 h-5 text-slate-400" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-bold text-obsidian">{player.name}</p>
+                          <p className="text-xs text-slate">{ROLE_LABELS[normalizeRole(player.role)]}</p>
+                        </div>
+                        {hasCheck ? (
+                          <Badge className={`border-none font-bold ${
+                            score >= 4 ? 'bg-green-100 text-green-700' :
+                            score >= 3 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                          }`}>{score}/5</Badge>
+                        ) : (
+                          <Badge className="bg-gray-100 text-foreground/70 border-none text-xs">미체크</Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function PlayersPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+      </div>
+    }>
+      <PlayersContent />
+    </Suspense>
+  );
+}

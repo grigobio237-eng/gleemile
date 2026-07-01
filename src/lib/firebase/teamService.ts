@@ -63,7 +63,7 @@ export const sendChatMessage = async (
 
 /**
  * 👑 임원(Manager) 승격 및 강등 권한 위임
- * 방장(director)만이 다른 멤버의 role을 변경할 수 있습니다.
+ * 최고 관리자(owner)만이 다른 멤버의 role을 변경할 수 있습니다.
  */
 export const assignMemberRole = async (
   teamId: string,
@@ -76,7 +76,7 @@ export const assignMemberRole = async (
   const currentUserSnap = await getDoc(currentUserMemberRef);
   
   if (!currentUserSnap.exists()) throw new Error("멤버 정보를 찾을 수 없습니다.");
-  if (currentUserSnap.data().role !== 'director') {
+  if (currentUserSnap.data().role !== 'owner') {
     throw new Error("권한이 없습니다. 방장만 등급을 변경할 수 있습니다.");
   }
   
@@ -162,12 +162,12 @@ export const createTeamWithUniqueCode = async (
           createdAt: serverTimestamp(),
         });
         
-        // 방장(director) 멤버십 등록
+        // 개설자(owner) 멤버십 등록
         const memberRef = doc(db, 'team_members', `${teamId}_${userId}`);
         transaction.set(memberRef, {
           teamId,
           userId,
-          role: 'director',
+          role: 'owner',
           status: 'active',
           joinedAt: serverTimestamp(),
         });
@@ -193,7 +193,7 @@ export const createTeamWithUniqueCode = async (
 export const joinTeamWithCode = async (
   userId: string,
   teamCode: string,
-  role: 'member' | 'supporter' = 'member'
+  role: 'member' | 'guest' = 'member'
 ) => {
   // 1. 초대 코드로 teamId 룩업
   const codeRef = doc(db, 'team_codes', teamCode.toUpperCase());

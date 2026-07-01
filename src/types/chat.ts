@@ -6,7 +6,7 @@ import { Timestamp, serverTimestamp, FieldValue, DocumentData, QueryDocumentSnap
 export interface ChatMessage {
   id: string; // 메시지 고유 ID (Firestore 문서 ID)
   senderId: string;
-  senderRole: 'director' | 'manager' | 'member' | 'guest'; // 방장/임원/방원/참관인
+  senderRole: 'owner' | 'manager' | 'member' | 'guest'; // 방장/임원/방원/참관인
   content: string;
   createdAt: number; // 밀리초(ms) 단위의 Unix Timestamp (낙관적 UI 및 프론트 렌더링 최적화)
   attachmentUrl?: string; // (선택) Storage 이미지/미디어 다운로드 URL
@@ -15,7 +15,7 @@ export interface ChatMessage {
 // Firestore에 저장될 원본 데이터 형태
 export interface ChatMessageFirestore {
   senderId: string;
-  senderRole: 'director' | 'manager' | 'member' | 'guest';
+  senderRole: 'owner' | 'manager' | 'member' | 'guest';
   content: string;
   createdAt: FieldValue | Timestamp; 
   attachmentUrl?: string;

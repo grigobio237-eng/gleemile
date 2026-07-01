@@ -50,8 +50,8 @@ export async function POST(
       body = msgData.attachmentUrl ? '미디어 파일을 보냈습니다.' : msgData.text;
       
     } else if (type === 'announcement' && announcementId) {
-      // 공지사항 발송 권한(director, manager) 검증
-      if (userRole !== 'director' && userRole !== 'manager') {
+      // 공지사항 발송 권한(owner, manager) 검증
+      if (userRole !== 'owner' && userRole !== 'manager') {
         return NextResponse.json({ error: 'Announcement notify forbidden' }, { status: 403 });
       }
 

@@ -18,7 +18,7 @@ function SignupContent() {
   const router = useRouter();
   
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams?.get('callbackUrl') || '/mile/mypage';
+  const callbackUrl = searchParams?.get('callbackUrl') || '/';
 
   const [formData, setFormData] = useState({
     name: '',

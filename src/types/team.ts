@@ -3,7 +3,7 @@ import { Timestamp, FieldValue, DocumentData, QueryDocumentSnapshot, SnapshotOpt
 // ==========================================
 // 1. 역할 기반 권한 체계 (Role-based Access Control)
 // ==========================================
-export type TeamRole = 'director' | 'manager' | 'member' | 'supporter'; // 방장 | 임원 | 방원 | 참관인
+export type TeamRole = 'owner' | 'manager' | 'member' | 'guest'; // 방장 | 임원 | 방원 | 참관인
 
 // ==========================================
 // 2. 도큐먼트 스펙 (Document Schemas)

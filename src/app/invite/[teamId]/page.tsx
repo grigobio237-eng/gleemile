@@ -17,5 +17,5 @@ export default async function InviteJoinPage({ params }: { params: Promise<{ tea
   // await joinTeam(session.user.id, teamId);
   
   // 아래는 실제 백엔드 연동 전 임시 Stub 리다이렉트입니다.
-  redirect('/mile/mypage');
+  redirect(`/mile/${teamId}/dashboard`);
 }

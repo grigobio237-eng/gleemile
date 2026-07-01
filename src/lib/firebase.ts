@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getAnalytics, isSupported } from 'firebase/analytics';
+import { getDatabase } from 'firebase/database';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -19,6 +20,7 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 // Database 및 Storage 초기화
 const db = getFirestore(app);
 const storage = getStorage(app);
+const rtdb = getDatabase(app, 'https://gleemile-default-rtdb.asia-southeast1.firebasedatabase.app');
 
 // Analytics는 브라우저(클라이언트) 환경에서만 작동하므로 예외처리가 필수입니다.
 let analytics: any = null;
@@ -30,4 +32,4 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export { app, db, storage, analytics };
+export { app, db, storage, rtdb, analytics };

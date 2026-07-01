@@ -1,38 +1,22 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Home, Activity, LayoutDashboard, FileText, User, Trophy } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { usePathname, useParams } from 'next/navigation';
+import { Home, Activity, Calendar, Trophy, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
+  const params = useParams();
   const { data: session } = useSession();
   const [hasAlert, setHasAlert] = useState(false);
 
-  useEffect(() => {
-    if (!session?.user) return;
+  const teamId = params?.teamId as string || (session?.user as any)?.mileTeamId;
 
-    const checkStatus = async () => {
-      try {
-        const res = await fetch('/api/me/status');
-        if (res.ok) {
-          const data = await res.json();
-          setHasAlert(data.hasNewConsultationFeedback);
-        }
-      } catch (error) {
-        console.error('Failed to fetch status:', error);
-      }
-    };
-
-    checkStatus();
-    const interval = setInterval(checkStatus, 300000); // 5분마다 확인
-    return () => clearInterval(interval);
-  }, [session]);
-
+  // Gleemile 코어 네비게이션
   const navItems = [
     {
       label: '홈',
@@ -40,19 +24,19 @@ export default function MobileBottomNav() {
       icon: Home,
     },
     {
-      label: '오늘 리듬체크',
-      href: '/ai-navigator',
+      label: '클럽하우스',
+      href: teamId ? `/mile/${teamId}/community` : '/',
+      icon: Trophy,
+    },
+    {
+      label: '내 컨디션',
+      href: teamId ? `/mile/${teamId}/my-condition` : '/',
       icon: Activity,
     },
     {
-      label: '대시보드',
-      href: '/dashboard',
-      icon: LayoutDashboard,
-    },
-    {
-      label: '내 회복 리포트',
-      href: '/reports',
-      icon: FileText,
+      label: '일정',
+      href: teamId ? `/mile/${teamId}/schedule` : '/',
+      icon: Calendar,
     },
     {
       label: '마이페이지',
@@ -60,16 +44,6 @@ export default function MobileBottomNav() {
       icon: User,
     },
   ];
-
-  // 모임 클럽하우스 탭 추가 (조건부)
-  const isMileUser = (session?.user as any)?.mileRole || (session?.user as any)?.role === 'admin' || (session?.user as any)?.role === 'superadmin';
-  if (isMileUser) {
-    navItems.splice(3, 0, {
-      label: '클럽하우스',
-      href: '/mile/mypage',
-      icon: Trophy,
-    });
-  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden pb-safe">

@@ -14,7 +14,7 @@ declare module "next-auth" {
             grade?: string
             tier?: string
             subscription?: any
-            mileRole?: 'director' | 'leader' | 'member' | 'supporter' | null
+            mileRole?: 'owner' | 'manager' | 'member' | 'guest' | null
             activeTeamId?: string | null
             pass?: any
         } & DefaultSession["user"]
@@ -28,7 +28,7 @@ declare module "next-auth" {
         provider?: string
         providerId?: string
         emailVerified?: boolean | null
-        mileRole?: 'director' | 'leader' | 'member' | 'supporter' | null
+        mileRole?: 'owner' | 'manager' | 'member' | 'guest' | null
         activeTeamId?: string | null
     }
 }
@@ -42,7 +42,7 @@ declare module "next-auth/jwt" {
         grade?: string
         tier?: string
         subscription?: any
-        mileRole?: 'director' | 'leader' | 'member' | 'supporter' | null
+        mileRole?: 'owner' | 'manager' | 'member' | 'guest' | null
         activeTeamId?: string | null
     }
 }

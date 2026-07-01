@@ -13,7 +13,7 @@ import { isWebView, handleWebViewOAuth, openExternalBrowser } from '@/utils/webV
 
 function SigninContent() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams?.get('callbackUrl') || '/mile/mypage';
+  const callbackUrl = searchParams?.get('callbackUrl') || '/';
   const [showPassword, setShowPassword] = useState(false);
   const [isInWebView, setIsInWebView] = useState(false);
   const [formData, setFormData] = useState({

@@ -58,15 +58,13 @@ export interface IFirestoreTeamMember {
   id: string;             // `${teamId}_${userId}`
   teamId: string;
   userId: string;
-  role: 'director' | 'manager' | 'member' | 'supporter';
+  role: 'owner' | 'manager' | 'member' | 'guest';
   permissions: {
     viewWellness: boolean;
     viewAcwr: boolean;
     manageAnnouncements: boolean;
     manageMembers: boolean;
   };
-  position?: 'MF' | 'FW' | 'DF' | 'GK';
-  playerNumber?: number;
   linkedPlayerId?: string; 
   status: 'active' | 'inactive' | 'transferred';
   joinedAt: Timestamp | FieldValue;
@@ -79,6 +77,19 @@ export interface IFirestoreTeamMember {
     acwrRatio?: number;
     injuryRiskZone?: 'Safe' | 'Watch' | 'Danger';
   };
+}
+
+export interface IJoinRequest {
+  id: string; // userId
+  name: string;
+  avatar?: string;
+  gender?: 'male' | 'female' | 'none';
+  ageGroup?: string;
+  phoneNumber?: string;
+  recommender?: string;
+  introduction?: string;
+  status: 'pending' | 'rejected';
+  appliedAt: Timestamp | FieldValue;
 }
 
 // ==========================================

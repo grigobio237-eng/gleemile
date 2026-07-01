@@ -1,5 +1,4 @@
-import { AnalysisResult } from '@/components/home/HeroScanner';
-
+// Removed import from HeroScanner
 export interface RoutineAction {
   text: string;
   icon: string;
@@ -47,7 +46,7 @@ const ROUTINE_POOL: Record<string, RoutineAction[]> = {
  */
 export function generateDynamicRoutines(
   score: number, 
-  analysisData?: AnalysisResult | null
+  analysisData?: any | null
 ): RoutineAction[] {
   // 1. 점수 기반 레벨 결정
   let level = 'DEEP-SURGE';

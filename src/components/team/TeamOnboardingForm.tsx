@@ -24,7 +24,7 @@ export function TeamOnboardingForm({ userId }: TeamOnboardingFormProps) {
 
   // Join Form State
   const [teamCode, setTeamCode] = useState('');
-  const [role, setRole] = useState<'member' | 'supporter'>('member');
+  const [role, setRole] = useState<'member' | 'guest'>('member');
 
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,16 +127,16 @@ export function TeamOnboardingForm({ userId }: TeamOnboardingFormProps) {
                     className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${role === 'member' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
                   >
                     <User className={`w-6 h-6 mb-2 ${role === 'member' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                    <span className={`text-sm font-bold ${role === 'member' ? 'text-indigo-900' : 'text-slate-500'}`}>방원</span>
+                    <span className={`text-sm font-bold ${role === 'member' ? 'text-indigo-900' : 'text-slate-500'}`}>팀원</span>
                     <span className="text-[10px] text-slate-400 mt-1">실제 참여 멤버</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setRole('supporter')}
-                    className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${role === 'supporter' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+                    onClick={() => setRole('guest')}
+                    className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${role === 'guest' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
                   >
-                    <ShieldCheck className={`w-6 h-6 mb-2 ${role === 'supporter' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                    <span className={`text-sm font-bold ${role === 'supporter' ? 'text-indigo-900' : 'text-slate-500'}`}>참관인</span>
+                    <ShieldCheck className={`w-6 h-6 mb-2 ${role === 'guest' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                    <span className={`text-sm font-bold ${role === 'guest' ? 'text-indigo-900' : 'text-slate-500'}`}>방문</span>
                     <span className="text-[10px] text-slate-400 mt-1">학부모 / 관전자</span>
                   </button>
                 </div>

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import CharacterImage from '@/components/ui/CharacterImage';
 import { motion } from 'framer-motion';
 import NoticeTicker from './NoticeTicker';
-import { AccessControl } from '@/lib/logic/access-control';
+
 import { getKSTDate } from '@/lib/date';
 
 export default function Header() {
@@ -77,7 +77,7 @@ export default function Header() {
     { label: '오늘 리듬체크', href: '/ai-navigator', desc: '데이터 기반 맞춤 루틴 제안' },
     // @ts-ignore — 모임 유저 및 어드민/수퍼어드민에게만 클럽하우스 메뉴 노출
     ...((session?.user?.mileRole || AccessControl.isAdmin(session?.user) || (session?.user as any)?.role === 'superadmin')
-      ? [{ label: '⚽ 클럽하우스', href: '/mile/mypage', desc: '팀 일정 & 컨디션 소통' }] : []),
+      ? [{ label: '⚽ 클럽하우스', href: '/', desc: '팀 일정 & 컨디션 소통' }] : []),
     { label: '내 회복 리포트', href: '/reports', desc: '나의 모든 체크 및 회복 리포트' },
     { label: '대시보드', href: '/dashboard', desc: '나의 회복 현황 대시보드' },
     { label: '힐링 라운지', href: '/products', desc: '프리미엄 회복 공간 및 프로그램' },

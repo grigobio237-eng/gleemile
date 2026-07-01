@@ -6,14 +6,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 
 import { db, storage } from '@/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot, addDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, addDoc, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { ChatMessage, chatBlockConverter, generateChatMediaStoragePath } from '@/types/chat';
 
 interface TeamChatRoomProps {
   teamId: string;
   currentUserId?: string;
-  currentUserRole?: 'director' | 'manager' | 'member' | 'guest';
+  currentUserRole?: 'owner' | 'manager' | 'member' | 'guest';
 }
 
 export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member' }: TeamChatRoomProps) {
@@ -27,6 +27,26 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ==========================================
+  // 0. 메타데이터 갱신 (Mount & Unmount 시점에만 기록 - 쓰기 비용 최적화)
+  // ==========================================
+  useEffect(() => {
+    if (!teamId || !currentUserId) return;
+    
+    const updateLastRead = () => {
+      const metadataRef = doc(db, `teams/${teamId}/memberMeta`, currentUserId);
+      setDoc(metadataRef, { lastReadChatAt: serverTimestamp() }, { merge: true }).catch(console.error);
+    };
+
+    // Mount 시점 갱신
+    updateLastRead();
+
+    // Unmount 시점 갱신 (채팅방 이탈 시)
+    return () => {
+      updateLastRead();
+    };
+  }, [teamId, currentUserId]);
 
   // ==========================================
   // 1. 실시간 메시지 구독 (onSnapshot & Optimistic UI)
@@ -153,7 +173,7 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
 
   const getRoleBadge = (role: string) => {
     switch(role) {
-      case 'director': return <span className="px-1.5 py-0.5 bg-rose-100 text-rose-600 rounded text-[9px] font-black">방장</span>;
+      case 'owner': return <span className="px-1.5 py-0.5 bg-rose-100 text-rose-600 rounded text-[9px] font-black">방장</span>;
       case 'manager': return <span className="px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded text-[9px] font-black">임원</span>;
       case 'guest': return <span className="px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded text-[9px] font-black">참관인</span>;
       default: return <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-600 rounded text-[9px] font-black">방원</span>;
@@ -171,7 +191,7 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
   const mediaItems = messages.filter(m => m.attachmentUrl);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-220px)] bg-[#f8fafc] rounded-b-[32px] overflow-hidden relative">
+    <div className="flex flex-col h-full bg-[#f8fafc] rounded-b-[32px] overflow-hidden relative">
       
       {/* 서랍 버튼 */}
       <div className="absolute top-4 right-4 z-10">

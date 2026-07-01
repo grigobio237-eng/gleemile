@@ -1,77 +1,110 @@
-import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Wallet, Receipt, BellRing, Check } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { Card } from '@/components/ui/card';
+import { Wallet, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, doc } from 'firebase/firestore';
+import { normalizeRole } from '@/types/role';
 
 interface BlockProps {
+  unreadCount?: number;
   role: string;
+  teamId: string;
 }
 
-export function ExpenseSettlementBlock({ role }: BlockProps) {
-  const [isPaid, setIsPaid] = useState(false);
+export function ExpenseSettlementBlock({ role, teamId, unreadCount }: BlockProps) {
+  const [totalAsset, setTotalAsset] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
 
-  return (
-    <Card className="rounded-2xl border-none shadow-lg overflow-hidden bg-white">
-      <div className="px-4 py-3 border-b border-line flex items-center justify-between bg-gradient-to-r from-lime-50 to-white">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-lime-500 rounded-lg flex items-center justify-center">
+  useEffect(() => {
+    let initial = 0;
+    let income = 0;
+    let expense = 0;
+
+    const teamUnsub = onSnapshot(doc(db, 'teams', teamId), (docSnap) => {
+      if (docSnap.exists()) {
+        initial = docSnap.data().initialBalance || 0;
+        updateTotal();
+      }
+    });
+
+    const incomeUnsub = onSnapshot(collection(db, 'teams', teamId, 'settlements'), (snap) => {
+      let tempIncome = 0;
+      snap.forEach(docSnap => {
+        const data = docSnap.data();
+        const memSum = (data.participants || []).filter((p: any) => p.isDeposited).length * (data.perPersonAmount || 0);
+        const guestSum = (data.guestDeposits || []).reduce((acc: number, g: any) => acc + g.amount, 0);
+        tempIncome += memSum + guestSum;
+      });
+      income = tempIncome;
+      updateTotal();
+    });
+
+    const expenseUnsub = onSnapshot(collection(db, 'teams', teamId, 'expenses'), (snap) => {
+      let tempExpense = 0;
+      snap.forEach(docSnap => {
+        tempExpense += docSnap.data().amount || 0;
+      });
+      expense = tempExpense;
+      updateTotal();
+    });
+
+    const updateTotal = () => {
+      setTotalAsset(initial + income - expense);
+      setLoading(false);
+    };
+
+    return () => {
+      teamUnsub();
+      incomeUnsub();
+      expenseUnsub();
+    };
+  }, [teamId]);
+
+  const isGuest = normalizeRole(role) === 'guest';
+
+  const content = (
+    <Card className={`rounded-2xl border border-slate-100 shadow-sm overflow-hidden bg-white transition-all relative ${isGuest ? '' : 'hover:shadow-md hover:border-emerald-200'}`}>
+      {/* 알림 뱃지: Deep Coral (#E05A47) */}
+      {unreadCount !== undefined && unreadCount > 0 && (
+        <div className="absolute top-2 right-2 bg-[#E05A47] text-white text-xs font-black w-6 h-6 rounded-full flex items-center justify-center shadow-md animate-bounce z-10">
+          {unreadCount > 99 ? '99+' : unreadCount}
+        </div>
+      )}
+      <div className="px-4 py-3.5 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center shadow-sm shrink-0">
             <Wallet className="w-4 h-4 text-white" />
           </div>
           <div>
-            <p className="font-black text-sm text-obsidian leading-tight">회비/비용 정산 모듈</p>
-            <p className="text-[10px] font-bold text-slate-500">투명한 영수증 및 1/N 정산</p>
+            <p className="font-black text-sm text-obsidian leading-tight">회비/비용 정산</p>
+            <p className="text-[10px] text-slate-500 font-bold">N빵 정산과 회비 내역 공유.</p>
           </div>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {isGuest ? (
+            <span className="text-xs text-slate-400 font-bold">권한 없음</span>
+          ) : loading ? (
+            <div className="animate-pulse w-20 h-6 bg-slate-100 rounded-md"></div>
+          ) : (
+            <span className="font-black text-base text-emerald-600">
+              ₩ {totalAsset.toLocaleString()}
+            </span>
+          )}
+          {!isGuest && <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 transition-colors" />}
         </div>
       </div>
-      <CardContent className="p-4 space-y-4">
-        
-        {/* Receipt Widget */}
-        <div className="bg-[#fcfbf9] border border-slate-200 rounded-xl p-4 relative overflow-hidden shadow-inner font-mono">
-          <div className="absolute -top-2 left-4 right-4 flex justify-between">
-            {[...Array(10)].map((_, i) => (
-              <div key={i} className="w-2 h-2 rounded-full bg-white border-b border-slate-200" />
-            ))}
-          </div>
-          
-          <div className="text-center mb-3 pt-2">
-            <Receipt className="w-5 h-5 text-slate-400 mx-auto mb-1" />
-            <p className="text-[10px] font-bold text-slate-500">6월 24일 회식 비용</p>
-            <h3 className="text-xl font-black text-obsidian tracking-tighter">₩ 124,000</h3>
-          </div>
-          
-          <div className="border-t border-dashed border-slate-300 my-2 pt-2 space-y-1">
-            <div className="flex justify-between text-xs">
-              <span className="text-slate-500">참여 인원</span>
-              <span className="font-bold text-obsidian">8명</span>
-            </div>
-            <div className="flex justify-between text-sm mt-1">
-              <span className="font-bold text-lime-700">1인당 정산 금액</span>
-              <span className="font-black text-lime-700">₩ 15,500</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Member Action */}
-        <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100">
-          <div>
-            <p className="text-xs font-bold text-obsidian">나의 입금 상태</p>
-            <p className="text-[10px] text-slate-500">{isPaid ? '입금 확인 완료' : '미입금 (카카오뱅크 3333-01...)'}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {isPaid && <span className="text-xs font-bold text-lime-600 flex items-center gap-1"><Check className="w-3 h-3"/> 완료</span>}
-            <Switch checked={isPaid} onCheckedChange={setIsPaid} className="data-[state=checked]:bg-lime-500" />
-          </div>
-        </div>
-
-        {/* Director Action */}
-        {(role === 'director' || role === 'head_coach' || role === 'coach') && (
-          <Button className="w-full h-10 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl gap-2 mt-2">
-            <BellRing className="w-4 h-4" /> 미입금자 송금 알림 발송
-          </Button>
-        )}
-
-      </CardContent>
     </Card>
+  );
+
+  return isGuest ? (
+    <div className="block opacity-70">
+      {content}
+    </div>
+  ) : (
+    <Link href={`/mile/${teamId}/settlement`} className="block group">
+      {content}
+    </Link>
   );
 }

@@ -1,1381 +1,489 @@
-﻿'use client';
+'use client';
 
+import React, { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
+import { Loader2, LogOut, Shield, Mail, User, Camera, Smartphone, MapPin, Activity, Flame, HeartPulse, Plus, Settings2, Bell, EyeOff, Users, Trash2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import UnifiedAddressSearch from '@/components/ui/UnifiedAddressSearch';
-import MembershipInfo from '@/components/ui/MembershipInfo';
 import { Badge } from '@/components/ui/badge';
-import {
-  User,
-  Mail,
-  MessageCircle,
-  Phone,
-  MapPin,
-  Settings,
-  Save,
-  Store,
-  CheckCircle,
-  Clock,
-  XCircle,
-  AlertCircle,
-  X,
-  Upload,
-  FileImage,
-  ChevronRight,
-  ClipboardList,
-  ShieldCheck,
-  CreditCard,
-  Ticket,
-  Bell,
-  LogOut,
-  UserX,
-  ShoppingBag,
-  Heart,
-  Activity,
-  Zap,
-  Sparkles,
-  Trophy,
-  Link2,
-  UserPlus
-} from 'lucide-react';
-import Link from 'next/link';
-import ReferralSection from '@/components/ui/ReferralSection';
-import Image from 'next/image';
-import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { motion, AnimatePresence } from 'framer-motion';
-import DynamicHero from '@/components/me/DynamicHero';
-import MembershipProgress from '@/components/me/MembershipProgress';
-import AILatestBrief from '@/components/me/AILatestBrief';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import ChapterWrapper from '@/components/layout/ChapterWrapper';
-import QRReferralCard from '@/components/me/QRReferralCard';
-import MedicalPassCard from '@/components/me/MedicalPassCard';
-import ReferralNetwork from '@/components/shared/ReferralNetwork';
-import NavigatorConsultationCenter from '@/components/me/NavigatorConsultationCenter';
-import RecoveryLeaderboard from '@/components/me/RecoveryLeaderboard';
+import { db } from '@/lib/firebase';
+import { doc, collection, onSnapshot, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
+import { GleemileUser } from '@/types/user';
 
 export default function MyPage() {
   const { data: session, status } = useSession();
-  const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'recovery' | 'pass' | 'care' | 'profile'>('recovery');
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    marketingConsent: false,
-    zipCode: '',
-    address1: '',
-    address2: '',
-    avatar: '',
-  });
-  const [userData, setUserData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [showPartnerApplication, setShowPartnerApplication] = useState(false);
-  const [partnerApplicationData, setPartnerApplicationData] = useState({
-    partnerType: '',
-    businessName: '',
-    businessNumber: '',
-    businessZipCode: '',
-    businessAddress: '',
-    businessDetailAddress: '',
-    businessPhone: '',
-    businessDescription: '',
-    bankAccount: '',
-    bankName: '',
-    accountHolder: '',
-    businessRegistrationImage: '',
-    bankStatementImage: ''
-  });
-  const [selectedFiles, setSelectedFiles] = useState<{ [key: string]: File | null }>({
-    businessRegistrationImage: null,
-    bankStatementImage: null
-  });
-  const [previewUrls, setPreviewUrls] = useState<{ [key: string]: string | null }>({
-    businessRegistrationImage: null,
-    bankStatementImage: null
-  });
-  const [partnerApplicationLoading, setPartnerApplicationLoading] = useState(false);
-  const [history, setHistory] = useState<any[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(true);
-  const [userStatus, setUserStatus] = useState<any>(null);
-  const [communityAverages, setCommunityAverages] = useState<any[]>([]);
-  const [weeklyReport, setWeeklyReport] = useState<any>(null);
-  const [notificationPermission, setNotificationPermission] = useState<string>('default');
-  const [userBadges, setUserBadges] = useState<any[]>([]);
+  const router = useRouter();
+  
+  const [userData, setUserData] = useState<GleemileUser | null>(null);
+  const [joinedTeams, setJoinedTeams] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Settings Form State
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [gender, setGender] = useState<'male' | 'female' | 'none'>('none');
+  const [ageGroup, setAgeGroup] = useState<string>('');
+  const [recommender, setRecommender] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [privacyMode, setPrivacyMode] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(true);
 
-  // 모임 클럽하우스 전용 상태
-  const [mileTeamInfo, setMileTeamInfo] = useState<any>(null);
-  const [milePendingTeam, setMilePendingTeam] = useState<any>(null);
-  const [mileLoading, setMileLoading] = useState(true);
-
-  // 모임 신청 및 가입 폼 상태
-  const [mileInviteCode, setMileInviteCode] = useState('');
-  const [mileJoining, setMileJoining] = useState(false);
-  const [mileCreationMode, setMileCreationMode] = useState(false);
-  const [mileNewTeamName, setMileNewTeamName] = useState('');
-  const [mileNewCategory, setMileNewCategory] = useState('youth');
-  const [mileNewAgeGroup, setMileNewAgeGroup] = useState('');
-  const [mileNewRegion, setMileNewRegion] = useState('');
-  const [mileNewDescription, setMileNewDescription] = useState('');
-  const [mileCreationLoading, setMileCreationLoading] = useState(false);
-  const [mileError, setMileError] = useState('');
+  // Club Management State
+  const [squadEditMode, setSquadEditMode] = useState(false);
+  const [selectedTeamForLeave, setSelectedTeamForLeave] = useState<any>(null);
+  const [leaveModalType, setLeaveModalType] = useState<'leave' | 'delegate' | 'delete' | null>(null);
+  const [isLeaving, setIsLeaving] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setNotificationPermission(Notification.permission);
-    }
-  }, []);
-
-  const handleNotificationToggle = async (checked: boolean) => {
-    if (checked) {
-      const permission = await Notification.requestPermission();
-      setNotificationPermission(permission);
-      if (permission === 'granted') {
-        // PWARegistration에서 처리하므로 권한만 요청해도 되지만, 즉각적인 반응을 위해 강제 재등록 유도 가능
-        window.location.reload(); // 서비스워커 재등록 유도
+    if (status !== 'authenticated' || !session?.user?.id) return;
+    
+    const userRef = doc(db, 'users', session.user.id);
+    const unsubscribe = onSnapshot(userRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as GleemileUser;
+        setUserData(data);
+        // Form init if not touched
+        if (!phone && data.phoneNumber) setPhone(data.phoneNumber);
+        if (!address && data.address) setAddress(data.address);
+        if (data.gender) setGender(data.gender);
+        if (data.ageGroup) setAgeGroup(data.ageGroup);
+        if (data.recommender) setRecommender(data.recommender);
       }
-    } else {
-      // 알림 끄기는 브라우저 설정에서 해야 하므로 안내만 표시
-      alert('알림을 끄려면 브라우저 설정에서 gleemile 사이트의 알림 권한을 차단해 주세요.');
-    }
-  };
-
-  const fetchCommunityData = async () => {
-    try {
-      const res = await fetch('/api/recovery/averages');
-      if (res.ok) {
-        const data = await res.json();
-        setCommunityAverages(data.dailyAverages || []);
-      }
-    } catch (e) {
-      console.error('Failed to fetch community averages:', e);
-    }
-  };
-
-  const fetchWeeklyReport = async () => {
-    try {
-      const res = await fetch('/api/dashboard/report');
-      if (res.ok) {
-        const data = await res.json();
-        setWeeklyReport(data.report);
-      }
-    } catch (e) {
-      console.error('Failed to fetch weekly report:', e);
-    }
-  };
-
-  const fetchBadges = async () => {
-    try {
-      const res = await fetch('/api/me/badges');
-      if (res.ok) {
-        const data = await res.json();
-        setUserBadges(data.badges || []);
-      }
-    } catch (e) {
-      console.error('Failed to fetch badges:', e);
-    }
-  };
-
-  // WebP 변환 유틸리티
-  const convertToWebP = async (file: File): Promise<File> => {
-    return new Promise((resolve, reject) => {
-      const img = new globalThis.Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Canvas context not available'));
-          return;
-        }
-        ctx.drawImage(img, 0, 0);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const newFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".webp", {
-              type: 'image/webp',
-              lastModified: Date.now(),
-            });
-            resolve(newFile);
-          } else {
-            reject(new Error('WebP conversion failed'));
-          }
-        }, 'image/webp', 0.8); // 퀄리티 0.8
-      };
-      img.onerror = (e) => reject(e);
-      img.src = URL.createObjectURL(file);
+      setLoading(false);
+    }, (error) => {
+      console.error(error);
+      setLoading(false);
     });
-  };
 
-  const fetchMileStatus = async () => {
-    try {
-      const res = await fetch('/api/mile/team');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.teams && data.teams.length > 0) {
-          setMileTeamInfo(data.teams[0]);
-        } else {
-          setMileTeamInfo(null);
-        }
-        if (data.pendingTeam) {
-          setMilePendingTeam(data.pendingTeam);
-        } else {
-          setMilePendingTeam(null);
-        }
-      }
-    } catch (e) {
-      console.error('Failed to fetch mile status:', e);
-    } finally {
-      setMileLoading(false);
-    }
-  };
-
-  const handleMileJoin = async () => {
-    if (!mileInviteCode) {
-      setMileError('초대 코드를 입력해 주세요.');
-      return;
-    }
-    setMileJoining(true);
-    setMileError('');
-    try {
-      const cleanCode = mileInviteCode.trim().toUpperCase();
-      window.location.href = `/mile/join/${cleanCode}`;
-    } catch (e) {
-      setMileError('초대 코드가 올바르지 않거나 합류 처리 중 오류가 발생했습니다.');
-      setMileJoining(false);
-    }
-  };
-
-  const handleMileCreate = async () => {
-    if (!mileNewTeamName) {
-      setMileError('팀 이름을 입력해 주세요.');
-      return;
-    }
-    setMileCreationLoading(true);
-    setMileError('');
-    try {
-      const res = await fetch('/api/mile/team', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          teamName: mileNewTeamName,
-          category: mileNewCategory,
-          ageGroup: mileNewAgeGroup,
-          region: mileNewRegion,
-          description: mileNewDescription
-        })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        alert('모임 창단 신청이 정상적으로 접수되었습니다! 관리자 승인 완료 후 대시보드가 오픈됩니다.');
-        setMileNewTeamName('');
-        setMileNewAgeGroup('');
-        setMileNewRegion('');
-        setMileNewDescription('');
-        setMileCreationMode(false);
-        await fetchMileStatus();
-      } else {
-        setMileError(data.error || '팀 신청에 실패했습니다.');
-      }
-    } catch (e) {
-      setMileError('네트워크 오류가 발생했습니다.');
-    } finally {
-      setMileCreationLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (session?.user) {
-      setFormData({
-        name: session.user.name || '',
-        email: session.user.email || '',
-        phone: '',
-        marketingConsent: false,
-        zipCode: '',
-        address1: '',
-        address2: '',
-        avatar: session.user.image || '',
-      });
-      fetchUserData();
-      fetchHistory();
-      fetchUserStatus();
-      fetchCommunityData();
-      fetchWeeklyReport();
-      fetchBadges();
-      fetchMileStatus();
-    }
-  }, [session?.user?.email]);
-
-  const fetchUserData = async () => {
-    if (!session?.user) return;
-
-    setLoading(true);
-    try {
-      const response = await fetch('/api/auth/me');
-      if (response.ok) {
-        const data = await response.json();
-        const u = data.user || data;
-        setUserData(u);
-
-        if (u.addresses && u.addresses.length > 0) {
-          const defaultAddress = u.addresses[0];
-          setFormData(prev => ({
-            ...prev,
-            phone: u.phone || '',
-            marketingConsent: u.marketingConsent || false,
-            zipCode: defaultAddress.zip || '',
-            address1: defaultAddress.addr1 || '',
-            address2: defaultAddress.addr2 || '',
-            avatar: u.avatar || session?.user?.image || '',
-          }));
-        } else {
-          setFormData(prev => ({
-            ...prev,
-            phone: u.phone || '',
-            marketingConsent: u.marketingConsent || false,
-            avatar: u.avatar || session?.user?.image || '',
-          }));
-        }
-      }
-    } catch (error) {
-      console.error('사용자 데이터 로드 오류:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchHistory = async () => {
-    try {
-      setHistoryLoading(true);
-      const res = await fetch('/api/me/recovery-history');
-      if (res.ok) {
-        const data = await res.json();
-        setHistory(data.history || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch history:', error);
-    } finally {
-      setHistoryLoading(false);
-    }
-  };
-
-  const fetchUserStatus = async () => {
-    try {
-      const res = await fetch('/api/me/status');
-      if (res.ok) {
-        const data = await res.json();
-        setUserStatus(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch user status:', error);
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
-  };
-
-  const handleAddressSelect = (data: any) => {
-    setFormData(prev => ({
-      ...prev,
-      zipCode: data.zonecode,
-      address1: data.address,
-    }));
-  };
-
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      const updateData: any = {
-        phone: formData.phone,
-        marketingConsent: formData.marketingConsent,
-        avatar: formData.avatar,
-      };
-
-      if (formData.zipCode && formData.address1) {
-        updateData.zipCode = formData.zipCode;
-        updateData.address1 = formData.address1;
-        updateData.address2 = formData.address2;
-      }
-
-      const response = await fetch('/api/auth/me', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUserData(data.user || data);
-        setIsEditing(false);
-        alert('프로필이 업데이트되었습니다.');
-      } else {
-        const errorData = await response.json();
-        alert(`저장 실패: ${errorData.error}`);
-      }
-    } catch (error) {
-      console.error('저장 오류:', error);
-      alert('저장 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setLoading(true);
-    try {
-      const webpFile = await convertToWebP(file);
-      const uploadFormData = new FormData();
-      uploadFormData.append('file', webpFile);
-      uploadFormData.append('folder', 'avatars');
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: uploadFormData,
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setFormData(prev => ({ ...prev, avatar: data.url }));
-      } else {
-        alert('이미지 업로드에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error('Avatar upload error:', error);
-      alert('이미지 처리 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePartnerApplicationChange = (field: string, value: string) => {
-    setPartnerApplicationData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // 1. 파일 상태 저장
-      setSelectedFiles(prev => ({
-        ...prev,
-        [fieldName]: file
-      }));
-
-      // 2. 미리보기 URL 생성 및 저장
-      const previewUrl = URL.createObjectURL(file);
-      setPreviewUrls(prev => ({
-        ...prev,
-        [fieldName]: previewUrl
-      }));
-    }
-  };
-
-  const handlePartnerApplicationSubmit = async () => {
-    setPartnerApplicationLoading(true);
-    try {
-      // 1. 이미지 업로드 처리 (WebP 변환 후)
-      let businessRegistrationImageUrl = partnerApplicationData.businessRegistrationImage;
-      let bankStatementImageUrl = partnerApplicationData.bankStatementImage;
-
-      // 사업자등록증 / 자격증 업로드
-      if (selectedFiles.businessRegistrationImage) {
-        try {
-          const webpFile = await convertToWebP(selectedFiles.businessRegistrationImage);
-          const formData = new FormData();
-          formData.append('file', webpFile);
-          formData.append('folder', 'partner-documents');
-
-          const res = await fetch('/api/upload', { method: 'POST', body: formData });
-          if (!res.ok) throw new Error('Business Registration Upload Failed');
-          const data = await res.json();
-          businessRegistrationImageUrl = data.url;
-        } catch (e) {
-          console.error(e);
-          alert('증빙서류 업로드 중 오류가 발생했습니다.');
-          setPartnerApplicationLoading(false);
-          return;
-        }
-      }
-
-      // 통장사본 업로드
-      if (selectedFiles.bankStatementImage) {
-        try {
-          const webpFile = await convertToWebP(selectedFiles.bankStatementImage);
-          const formData = new FormData();
-          formData.append('file', webpFile);
-          formData.append('folder', 'partner-documents');
-
-          const res = await fetch('/api/upload', { method: 'POST', body: formData });
-          if (!res.ok) throw new Error('Bank Statement Upload Failed');
-          const data = await res.json();
-          bankStatementImageUrl = data.url;
-        } catch (e) {
-          console.error(e);
-          alert('통장사본 업로드 중 오류가 발생했습니다.');
-          setPartnerApplicationLoading(false);
-          return;
-        }
-      }
-
-      let fullBusinessAddress = partnerApplicationData.businessAddress;
-      if (partnerApplicationData.businessZipCode) {
-        fullBusinessAddress = `[${partnerApplicationData.businessZipCode}] ${fullBusinessAddress}`;
-      }
-      if (partnerApplicationData.businessDetailAddress) {
-        fullBusinessAddress = `${fullBusinessAddress} ${partnerApplicationData.businessDetailAddress}`;
-      }
-
-      const response = await fetch('/api/partner/auth/apply', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: session?.user?.email || userData?.email || '',
-          name: session?.user?.name || userData?.name || '',
-          phone: partnerApplicationData.businessPhone,
-          ...partnerApplicationData,
-          businessAddress: fullBusinessAddress,
-          businessRegistrationImage: businessRegistrationImageUrl,
-          bankStatementImage: bankStatementImageUrl
-        }),
-      });
-
-      if (response.ok) {
-        alert('파트너 신청이 접수되었습니다. 검토 후 연락드리겠습니다.');
-        setShowPartnerApplication(false);
-        fetchUserData();
-      } else {
-        const errorData = await response.json();
-        alert(`신청 실패: ${errorData.error}`);
-      }
-    } catch (error) {
-      console.error('신청 오류:', error);
-      alert('신청 중 오류가 발생했습니다.');
-    } finally {
-      setPartnerApplicationLoading(false);
-    }
-  };
-
-  const getPartnerStatusInfo = () => {
-    if (!userData?.partnerStatus || userData.partnerStatus === 'none') {
-      return {
-        status: 'none',
-        title: '파트너 프로토콜 시작',
-        description: '회복의 전문가로서 본인만의 상점을 운영하십시오.',
-        icon: Store,
-        color: 'text-chapter-accent',
-        bgColor: 'bg-chapter-accent/5',
-        action: () => setShowPartnerApplication(true)
-      };
-    }
-
-    switch (userData.partnerStatus) {
-      case 'pending':
+    const teamsRef = collection(db, `users/${session.user.id}/teams`);
+    const unsubscribeTeams = onSnapshot(teamsRef, async (snapshot) => {
+      const promises = snapshot.docs.map(async (d) => {
+        const teamId = d.id;
+        const teamDocRef = doc(db, 'teams', teamId);
+        const teamSnap = await getDoc(teamDocRef);
         return {
-          status: 'pending',
-          title: '검토 진행 중',
-          description: '보안 심사가 진행 중입니다. 3-5영업일이 소요됩니다.',
-          icon: Clock,
-          color: 'text-status-amber',
-          bgColor: 'bg-status-amber/5',
-          action: null
+          id: teamId,
+          ...d.data(),
+          ...(teamSnap.exists() ? teamSnap.data() : {})
         };
-      case 'approved':
-        return {
-          status: 'approved',
-          title: '파트너 인증 완료',
-          description: '인증된 파트너입니다. 관리 대시보드에 접근 가능합니다.',
-          icon: CheckCircle,
-          color: 'text-status-good',
-          bgColor: 'bg-status-good/5',
-          action: () => window.open('/partner/login', '_blank')
-        };
-      case 'rejected':
-        return {
-          status: 'rejected',
-          title: '인증 승인 거절',
-          description: userData.partnerApplication?.rejectedReason || '보안 정책에 부합하지 않습니다.',
-          icon: XCircle,
-          color: 'text-status-danger',
-          bgColor: 'bg-status-danger/5',
-          action: () => setShowPartnerApplication(true)
-        };
-      default:
-        return null;
-    }
-  };
+      });
+      const fetchedTeams = await Promise.all(promises);
+      setJoinedTeams(fetchedTeams);
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeTeams();
+    };
+  }, [status, session]);
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-mist flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-chapter-accent"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#FAF9F6]">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
       </div>
     );
   }
 
-  if (!session) {
-    return (
-      <div className="min-h-screen bg-mist flex items-center justify-center">
-        <Card className="w-full max-w-md border-none shadow-2xl rounded-[40px] bg-white text-center p-12">
-          <div className="w-20 h-20 bg-mist rounded-[24px] flex items-center justify-center mx-auto mb-8 shadow-inner text-4xl">🔒</div>
-          <h2 className="text-lg md:text-3xl font-black text-obsidian tracking-tight mb-2">접근 권한 제한</h2>
-          <p className="text-[11px] md:text-sm text-slate font-medium mb-8">대시보드 접근을 위해 인증 프로토콜이 필요합니다.</p>
-          <Button asChild className="w-full h-14 rounded-2xl bg-obsidian text-mist font-black">
-            <Link href="/auth/signin">인증 시작</Link>
-          </Button>
-        </Card>
-      </div>
-    );
+  if (status === 'unauthenticated' || !session?.user || !userData) {
+    router.replace('/');
+    return null;
   }
 
-  const partnerInfo = getPartnerStatusInfo();
+  const handleSaveSettings = async () => {
+    if (!session?.user?.id) return;
+    setIsSaving(true);
+    try {
+      const userRef = doc(db, 'users', session.user.id);
+      await setDoc(userRef, { 
+        phoneNumber: phone, 
+        address: address,
+        gender: gender,
+        ageGroup: ageGroup,
+        recommender: recommender
+      }, { merge: true });
+      // Optional: Toast success
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLeaveClick = async (team: any) => {
+    if (!session?.user?.id) return;
+    setSelectedTeamForLeave(team);
+    
+    if (team.role !== 'owner') {
+      setLeaveModalType('leave');
+      return;
+    }
+
+    try {
+      const teamRef = doc(db, 'teams', team.id);
+      const teamSnap = await getDoc(teamRef);
+      if (teamSnap.exists()) {
+        const memberCount = teamSnap.data().memberCount || 1;
+        if (memberCount > 1) {
+          setLeaveModalType('delegate');
+        } else {
+          setLeaveModalType('delete');
+        }
+      } else {
+        setLeaveModalType('delete');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('데이터를 확인하는 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleConfirmLeave = async () => {
+    if (!session?.user?.id || !selectedTeamForLeave || !leaveModalType) return;
+    setIsLeaving(true);
+    try {
+      const teamId = selectedTeamForLeave.id;
+      const userId = session.user.id;
+
+      if (leaveModalType === 'leave') {
+        await deleteDoc(doc(db, `users/${userId}/teams`, teamId));
+        await deleteDoc(doc(db, `teams/${teamId}/member_summaries`, userId));
+      } else if (leaveModalType === 'delete') {
+        await deleteDoc(doc(db, `users/${userId}/teams`, teamId));
+        await deleteDoc(doc(db, 'teams', teamId));
+      } else if (leaveModalType === 'delegate') {
+        router.push(`/mile/${teamId}/members`);
+        return; // Redirecting
+      }
+      
+      setLeaveModalType(null);
+      setSelectedTeamForLeave(null);
+      setSquadEditMode(false);
+    } catch (e) {
+      console.error(e);
+      alert('처리 중 오류가 발생했습니다.');
+    } finally {
+      setIsLeaving(false);
+    }
+  };
+
+  const handleAvatarUpload = () => {
+    alert('향후 업데이트를 통해 갤러리 접근 및 업로드 기능이 제공됩니다.');
+  };
 
   return (
-    <ChapterWrapper chapter="my-page">
-      <div className="min-h-screen bg-[#F8FAFC] py-6 px-4 md:py-20">
-        <div className="container mx-auto max-w-6xl px-0 md:px-4">
+    <div className="min-h-screen bg-[#FAF9F6] pt-12 pb-24 px-4 font-sans selection:bg-emerald-200">
+      <div className="max-w-md mx-auto space-y-6">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight">마이 프로필</h1>
+          <div className="flex items-center gap-1">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => router.push('/')}
+              className="text-slate-400 hover:text-emerald-600 font-bold px-2"
+            >
+              메인 홈
+            </Button>
+          </div>
+        </div>
 
-          {/* Dynamic Hero Section */}
-          <DynamicHero userName={session.user?.name || '유저'} />
+        {/* 1. Avatar & Future Kakao Sync */}
+        <Card className="rounded-[32px] border-none shadow-sm overflow-hidden relative group bg-white">
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-emerald-100 to-green-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
+          <CardContent className="p-8 flex flex-col items-center text-center relative z-10">
+            <div className="relative mb-4">
+              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-emerald-50 shadow-md relative">
+                {userData.avatarUrl || userData.avatar ? (
+                  <img src={userData.avatarUrl || userData.avatar} alt={userData.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-400">
+                    <User className="w-10 h-10" />
+                  </div>
+                )}
+              </div>
+              <button 
+                onClick={handleAvatarUpload}
+                className="absolute bottom-0 right-0 w-8 h-8 bg-white border border-slate-100 rounded-full flex items-center justify-center shadow-md text-slate-600 hover:text-emerald-600 hover:scale-105 transition-all"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <h2 className="text-xl font-black text-slate-800 mb-1">{userData.name}</h2>
+            <div className="flex items-center gap-1.5 text-slate-500 text-sm mb-4 font-medium">
+              <Mail className="w-3.5 h-3.5" />
+              <span>{userData.email}</span>
+            </div>
 
-          {/* Glassmorphic Tab Selector */}
-          <div className="flex bg-white/80 backdrop-blur-md p-1.5 rounded-[24px] border border-line/50 shadow-sm mb-8 z-30 overflow-x-auto scrollbar-none w-full gap-1">
-            {[
-              { id: 'recovery', label: '나의 회복 🌟', icon: Activity },
-              { id: 'pass', label: '디지털 패스 🎟️', icon: Ticket },
-              { id: 'care', label: '케어 & 상담 🩺', icon: MessageCircle },
-              { id: 'profile', label: '프로필 & 설정 ⚙️', icon: Settings },
-            ].map((tab) => {
-              const isActive = activeTab === tab.id;
-              const Icon = tab.icon;
+            <div className="w-full bg-slate-50/50 rounded-2xl p-4 border border-line flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-slate-700">
+                  <Shield className="w-4 h-4 text-emerald-500" />
+                  <span className="text-xs font-bold">플랫폼 권한</span>
+                </div>
+                <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none font-bold text-[10px] px-2.5">
+                  {userData.globalRole?.toUpperCase()}
+                </Badge>
+              </div>
+              <p className="text-[10px] text-slate-400 text-left leading-relaxed mt-1">
+                ※ 소셜 로그인 연동 시 프로필이 자동으로 동기화됩니다.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 2. HUD Metrics */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white rounded-[24px] p-4 border border-line flex flex-col items-center justify-center text-center shadow-sm space-y-1">
+            <Activity className="w-5 h-5 text-indigo-400 mb-1" />
+            <span className="text-[10px] font-bold text-slate-400">출석률</span>
+            <span className="text-lg font-black text-obsidian">95%</span>
+          </div>
+          <div className="bg-white rounded-[24px] p-4 border border-line flex flex-col items-center justify-center text-center shadow-sm space-y-1">
+            <Flame className="w-5 h-5 text-orange-400 mb-1" />
+            <span className="text-[10px] font-bold text-slate-400">스트릭</span>
+            <span className="text-lg font-black text-obsidian">12일</span>
+          </div>
+          <div className="bg-white rounded-[24px] p-4 border border-line flex flex-col items-center justify-center text-center shadow-sm space-y-1">
+            <HeartPulse className="w-5 h-5 text-rose-400 mb-1" />
+            <span className="text-[10px] font-bold text-slate-400">평균 회복도</span>
+            <span className="text-lg font-black text-obsidian">88점</span>
+          </div>
+        </div>
+
+        {/* 3. Multi-Squad Switcher */}
+        <div className="bg-white rounded-[28px] border border-line shadow-sm p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black text-obsidian flex items-center gap-2">
+              나의 스쿼드
+              <button 
+                onClick={() => setSquadEditMode(!squadEditMode)} 
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors ${squadEditMode ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+              >
+                {squadEditMode ? '완료' : '관리'}
+              </button>
+            </h3>
+            <span className="text-[10px] font-bold text-slate-400">{joinedTeams.length}개 소속됨</span>
+          </div>
+          <div className="flex gap-4 overflow-x-auto pt-2 pb-2 px-1 custom-scrollbar items-start">
+            {joinedTeams.map((team) => {
+              const isEmoji = team.teamIcon && team.teamIcon.length <= 4;
+              const hasImage = team.logoUrl || team.logo || (team.teamIcon && !isEmoji);
+              const imgSource = team.logoUrl || team.logo || team.teamIcon;
+
               return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 px-2 rounded-2xl text-[11px] sm:text-xs font-black transition-all shrink-0 ${
-                    isActive 
-                      ? 'bg-[#0E3A3A] text-white shadow-md shadow-[#0E3A3A]/15 scale-[1.01]' 
-                      : 'text-foreground/70 hover:text-obsidian hover:bg-slate-100/50'
-                  }`}
+                <div 
+                  key={team.id} 
+                  className="relative shrink-0 cursor-pointer group flex flex-col items-center gap-1.5 w-14"
+                  onClick={() => squadEditMode ? handleLeaveClick(team) : router.push(`/mile/${team.id}`)}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-foreground/70'}`} />
-                  <span>{tab.label}</span>
-                </button>
+                  <div 
+                    className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-md border-2 border-white ring-2 transition-all overflow-hidden group-hover:scale-105 ${squadEditMode ? 'opacity-90 ring-red-100 group-hover:ring-red-200' : 'ring-emerald-100'} ${!hasImage ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-slate-50'}`}
+                    title={team.teamName}
+                  >
+                    {isEmoji ? (
+                      <span className="text-2xl">{team.teamIcon}</span>
+                    ) : hasImage ? (
+                      <img src={imgSource} alt={team.teamName} className="w-full h-full object-cover" />
+                    ) : (
+                      team.teamName?.charAt(0)?.toUpperCase() || 'T'
+                    )}
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-600 w-[120%] text-center truncate">
+                    {team.teamName}
+                  </span>
+                  {squadEditMode && (
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white animate-in zoom-in-50 z-10 group-hover:scale-110 transition-transform">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </div>
+                  )}
+                </div>
               );
             })}
+            {!squadEditMode && (
+              <button 
+                onClick={() => router.push('/')}
+                className="w-14 h-14 bg-slate-50 border border-dashed border-slate-300 rounded-2xl flex-shrink-0 flex flex-col items-center justify-center text-slate-400 hover:text-emerald-600 hover:border-emerald-300 transition-all shrink-0"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            )}
           </div>
-
-          {/* Active Tab Panel with Framer Motion Animation */}
-          <AnimatePresence mode="wait">
-            {activeTab === 'recovery' && (
-              <motion.div
-                key="recovery"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.15 }}
-                className="space-y-6 md:space-y-8 animate-in fade-in"
-              >
-                {/* Badge Collection Section */}
-                {userBadges.length > 0 && (
-                  <div className="mb-8">
-                    <Card className="border-none shadow-sm rounded-[32px] bg-white border border-line">
-                      <div className="p-6 md:p-8">
-                        <div className="flex items-center justify-between mb-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-primary">
-                              <Sparkles className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <h3 className="text-base md:text-xl font-black text-obsidian tracking-tighter">회복 성취 뱃지</h3>
-                              <p className="text-[11px] md:text-sm font-bold text-slate">당신의 성취가 gleemile의 리듬을 만듭니다</p>
-                            </div>
-                          </div>
-                          <div className="bg-primary-container/50 text-primary px-3 py-1 rounded-full text-[10px] font-black">
-                            {userBadges.length}개 획득
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-4">
-                          {userBadges.map((badge, idx) => (
-                            <motion.div
-                              key={idx}
-                              whileHover={{ scale: 1.1 }}
-                              className="flex flex-col items-center gap-2 group cursor-help relative"
-                            >
-                              <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-sm border-2 transition-all ${
-                                badge.rarity === 'legendary' ? 'bg-purple-50 border-purple-200 shadow-purple-100' :
-                                badge.rarity === 'epic' ? 'bg-indigo-50 border-secondary/30 shadow-indigo-100' :
-                                badge.rarity === 'rare' ? 'bg-amber-50 border-primary/30 shadow-primary/20' :
-                                'bg-surface border-line'
-                              }`}>
-                                {badge.icon}
-                              </div>
-                              <span className="text-[10px] font-black text-slate text-center leading-tight group-hover:text-obsidian">
-                                {badge.name}
-                              </span>
-                              {/* Hover Tooltip (Simplified) */}
-                              <div className="hidden group-hover:block absolute z-10 w-40 p-2 bg-obsidian text-white text-[10px] rounded-lg mt-16 shadow-xl">
-                                <p className="font-black text-amber-400 mb-0.5">{badge.name}</p>
-                                <p className="opacity-80 leading-relaxed">{badge.description}</p>
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </div>
-                    </Card>
-                  </div>
-                )}
-
-                {/* Membership Progress & Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 lg:gap-6">
-                  {/* Membership Rewards (Left) */}
-                  <div className="lg:col-span-4 transition-transform hover:scale-[1.01]">
-                    <Link href="/membership" className="block h-full">
-                      <MembershipProgress
-                        currentGrade={userData?.grade || 'cedar'}
-                        currentPoints={userData?.points || 0}
-                      />
-                    </Link>
-                  </div>
-
-                  {/* Recovery Growth Quote/Brief (Center) */}
-                  <div className="lg:col-span-4">
-                    <AILatestBrief
-                      solution={history[0]?.aiSolution}
-                      createdAt={history[0]?.createdAt}
-                    />
-                  </div>
-
-                  {/* Quick Stats (Right) */}
-                  <div className="lg:col-span-4 grid grid-cols-2 gap-3">
-                    <div className="bg-white rounded-[28px] p-5 shadow-sm border border-line flex flex-col justify-between hover:shadow-md transition-shadow">
-                      <div className="w-9 h-9 rounded-xl bg-blue-50 text-primary flex items-center justify-center">
-                        <ShoppingBag className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-[9px] font-black text-foreground/70 uppercase tracking-widest mb-1">Orders</p>
-                        <p className="font-black text-obsidian tracking-tighter text-xl">0</p>
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-[28px] p-5 shadow-sm border border-line flex flex-col justify-between hover:shadow-md transition-shadow">
-                      <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center">
-                        <Ticket className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-[9px] font-black text-foreground/70 uppercase tracking-widest mb-1">Coupons</p>
-                        <p className="font-black text-obsidian tracking-tighter text-xl">2</p>
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-[28px] p-5 shadow-sm border border-line flex flex-col justify-between hover:shadow-md transition-shadow">
-                      <div className="w-9 h-9 rounded-xl bg-amber-50 text-primary flex items-center justify-center">
-                        <Activity className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-[9px] font-black text-foreground/70 uppercase tracking-widest mb-1">Sessions</p>
-                        <p className="font-black text-obsidian tracking-tighter text-xl">{history.length}</p>
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-[28px] p-5 shadow-sm border border-line flex flex-col justify-between hover:shadow-md transition-shadow">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-50 text-secondary flex items-center justify-center">
-                        <Zap className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-[9px] font-black text-foreground/70 uppercase tracking-widest mb-1">Points</p>
-                        <p className="font-black text-obsidian tracking-tighter text-xl">{userData?.points?.toLocaleString() || 0}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Leaderboard */}
-                <div>
-                  <RecoveryLeaderboard />
-                </div>
-
-                {/* Recovery Growth Curve */}
-                <Card className="border-none shadow-xl rounded-[32px] md:rounded-[40px] bg-white overflow-hidden group">
-                  <CardHeader className="p-6 md:p-8 pb-4 flex flex-row items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-[10px] font-black text-chapter-accent uppercase tracking-widest">Recovery Growth Curve</p>
-                        <Badge className="bg-chapter-accent/10 text-chapter-accent border-none text-[9px] font-black uppercase px-2">Community Comparative</Badge>
-                      </div>
-                      <CardTitle className="text-2xl font-black text-obsidian tracking-tighter">회복 성장 곡선</CardTitle>
-                    </div>
-                    <Button asChild variant="ghost" className="h-10 px-4 rounded-xl text-xs font-black text-slate hover:bg-mist group-hover:text-chapter-accent transition-all">
-                      <Link href="/me/history" className="flex items-center gap-2">
-                        전체 보기 <ChevronRight className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </CardHeader>
-                  <CardContent className="p-6 md:p-8 pt-2">
-                    {historyLoading ? (
-                      <div className="h-[200px] flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-chapter-accent"></div>
-                      </div>
-                    ) : history.length > 0 ? (
-                      <div className="space-y-6">
-                        {/* 차트 영역 */}
-                        <div className="h-[200px] w-full">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={[...history].reverse().map((h, idx) => {
-                              const dateStr = new Date(h.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-                              const commData = communityAverages?.find((c: any) => c.date === h.createdAt.split('T')[0]);
-                              return {
-                                date: dateStr,
-                                score: h.totalScore,
-                                avg: commData?.avgScore || 65 + (idx % 3),
-                                top: commData?.top10Score || 88 + (idx % 2)
-                              };
-                            })}>
-                              <defs>
-                                <linearGradient id="curveColor" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
-                                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                                </linearGradient>
-                              </defs>
-                              <XAxis dataKey="date" hide />
-                              <Tooltip
-                                 contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', fontSize: '11px', fontWeight: 'bold' }}
-                                 itemStyle={{ padding: '2px 0' }}
-                              />
-                              <Area type="monotone" dataKey="top" stroke="#fbbf24" strokeWidth={1} strokeDasharray="4 4" fill="transparent" name="상위 10% 목표" />
-                              <Area type="monotone" dataKey="avg" stroke="#94a3b8" strokeWidth={1} strokeDasharray="4 4" fill="transparent" name="gleemile 평균" />
-                              <Area type="monotone" dataKey="score" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#curveColor)" name="나의 회복 점수" />
-                            </AreaChart>
-                          </ResponsiveContainer>
-                        </div>
-
-                        {/* 소셜 프루프 요약 */}
-                        <div className="flex flex-col gap-4">
-                          <div className="flex items-center justify-between p-4 bg-mist/30 rounded-2xl border border-line/5 transition-all hover:bg-mist/50">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-reward-gold/10 rounded-xl flex items-center justify-center text-reward-gold">
-                                <Zap className="h-5 w-5 fill-current" />
-                              </div>
-                              <div>
-                                <p className="text-[10px] font-black text-slate/60 uppercase tracking-tighter">Your Status</p>
-                                <p className="font-black text-obsidian tracking-tight">상위 <span className="text-reward-gold">15%</span> 회복 우수자</p>
-                              </div>
-                            </div>
-                            <Badge className="bg-obsidian text-mist border-none text-[10px] font-black px-3 py-1.5 rounded-lg shadow-lg">
-                              TOP TIER
-                            </Badge>
-                          </div>
-
-                          {weeklyReport?.percentileFeedback && (
-                            <div className="bg-chapter-accent/5 p-4 rounded-2xl border border-chapter-accent/10">
-                              <p className="text-[11px] font-bold text-chapter-accent leading-relaxed">
-                                <Sparkles className="h-3 w-3 inline-block mr-1 mb-0.5" />
-                                {weeklyReport.percentileFeedback}
-                              </p>
-                            </div>
-                          )}
-
-                          <div className="flex items-center justify-between text-center border-t border-line/10 pt-4 px-2">
-                            <div>
-                              <p className="text-[9px] font-black text-slate uppercase opacity-40">최근 점수</p>
-                              <p className="font-black text-secondary">{history[0]?.totalScore || 0}점</p>
-                            </div>
-                            <div className="w-px h-6 bg-line/20" />
-                            <div>
-                              <p className="text-[9px] font-black text-slate uppercase opacity-40">전체 평균</p>
-                              <p className="font-black text-slate">68점</p>
-                            </div>
-                            <div className="w-px h-6 bg-line/20" />
-                            <div>
-                              <p className="text-[9px] font-black text-slate uppercase opacity-40">상위 10%</p>
-                              <p className="font-black text-reward-gold">89점</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="h-[200px] flex flex-col items-center justify-center text-center bg-mist/30 rounded-3xl border-2 border-dashed border-line/50">
-                        <Activity className="h-8 w-8 text-slate/20 mb-3" />
-                        <p className="text-xs font-bold text-slate mb-4">아직 리듬체크 기록이 관측되지 않았습니다.</p>
-                        <Button asChild size="sm" className="bg-obsidian text-mist rounded-full px-6 font-black text-[10px]">
-                          <Link href="/ai-navigator">첫 리듬체크 시작</Link>
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {activeTab === 'pass' && (
-              <motion.div
-                key="pass"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.15 }}
-                className="space-y-6 md:space-y-8 animate-in fade-in"
-              >
-                {/* 디지털 허브 */}
-                <Card className="border-none shadow-2xl rounded-[40px] bg-white overflow-hidden border border-line transition-all hover:shadow-3xl">
-                  <CardHeader className="p-8 md:p-10 pb-0 border-none">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="p-4 bg-emerald-50 rounded-2xl text-secondary shadow-inner">
-                          <Sparkles className="h-7 w-7" />
-                        </div>
-                        <div>
-                          <h3 className="text-2xl font-black text-obsidian tracking-tighter">디지털 허브</h3>
-                          <p className="text-[10px] font-black text-secondary uppercase tracking-[0.2em]">Referral & medical pass</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-8 md:p-10">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                      <div className="space-y-6">
-                        <div className="flex items-center gap-2">
-                           <Badge className="bg-secondary-container text-secondary border-none px-3 font-black text-[9px] uppercase tracking-widest">Invitation</Badge>
-                        </div>
-                        <QRReferralCard 
-                          userName={session.user?.name || ''} 
-                          referralCode={userData?.referralCode || ''} 
-                        />
-                      </div>
-                      <div className="space-y-6">
-                        <div className="flex items-center gap-2">
-                           <Badge className="bg-secondary-container text-secondary border-none px-3 font-black text-[9px] uppercase tracking-widest">Medical Pass</Badge>
-                        </div>
-                        <MedicalPassCard 
-                          userName={session.user?.name || ''} 
-                          referralCode={userData?.referralCode || ''} 
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* 나의 회복 조직도 */}
-                <Card className="border-none shadow-xl rounded-[40px] bg-white overflow-hidden group">
-                  <CardHeader className="p-8 md:p-10 pb-4">
-                    <div>
-                      <p className="text-[10px] font-black text-secondary uppercase tracking-widest mb-1">My Recovery Network</p>
-                      <CardTitle className="text-2xl font-black text-obsidian tracking-tighter flex items-center gap-3">
-                        나의 회복 조직도
-                        <Badge className="bg-indigo-50 text-secondary border-none text-[10px] font-black uppercase">Level 2</Badge>
-                      </CardTitle>
-                      <p className="text-sm font-medium text-slate mt-1">내가 소개한 친구와 친구가 소개한 사람들의 활동 현황입니다.</p>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-8 md:p-10 pt-2">
-                    <ReferralNetwork mode="accordion" />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {activeTab === 'care' && (
-              <motion.div
-                key="care"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.15 }}
-                className="space-y-6 md:space-y-8 animate-in fade-in"
-              >
-                {/* Service Progress Status Cards */}
-                {(userStatus?.concierge || userStatus?.inquiry) && (
-                  <div className="flex flex-col gap-4">
-                    {/* Concierge Status */}
-                    {userStatus?.concierge && (
-                      <Card className="border-none shadow-sm rounded-[32px] bg-white overflow-hidden border border-line">
-                        <div className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-                          <div className="flex items-center gap-5">
-                            <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-secondary">
-                              <Clock className={`w-7 h-7 ${userStatus.concierge.status === 'pending' ? 'animate-pulse' : ''}`} />
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-black text-secondary uppercase tracking-widest mb-1">Service Status Protocol</p>
-                              <h3 className="font-black text-obsidian tracking-tighter flex items-center gap-3 text-xl">
-                                {userStatus.concierge.painPoint} 회복 컨시어지
-                                <Badge variant="outline" className={`ml-2 px-3 py-0.5 rounded-full text-[10px] font-bold ${userStatus.concierge.status === 'pending' ? 'bg-amber-50 text-primary border-primary/30' :
-                                  userStatus.concierge.status === 'approved' ? 'bg-emerald-50 text-secondary border-emerald-200' :
-                                    'bg-surface text-foreground/70 border-line'
-                                  }`}>
-                                  {userStatus.concierge.status === 'pending' ? '검토 중' :
-                                    userStatus.concierge.status === 'approved' ? '승인 완료' : '진행 중'}
-                                </Badge>
-                              </h3>
-                              <p className="text-sm font-medium text-slate mt-1">
-                                {userStatus.concierge.status === 'pending' ? '관리자가 의뢰서를 검토하고 있습니다.' :
-                                  userStatus.concierge.status === 'approved' ? '회복 프로토콜이 승인되었습니다. 상세 내용을 확인하세요.' :
-                                    '신청 내용을 처리 중입니다.'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="w-full md:w-auto">
-                            <Button variant="outline" asChild className="w-full md:w-auto h-12 rounded-xl border-line font-black text-xs px-8 hover:bg-surface">
-                              <Link href="/me/history">진행 내역 보기</Link>
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div className="h-1.5 w-full bg-surface px-8 pb-8">
-                          <div className="h-full bg-slate-200 rounded-full relative">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: userStatus.concierge.status === 'approved' ? '100%' : '50%' }}
-                              className={`absolute left-0 top-0 h-full rounded-full ${userStatus.concierge.status === 'approved' ? 'bg-secondary shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-secondary shadow-[0_0_10px_rgba(79,70,229,0.5)]'
-                                }`}
-                            />
-                          </div>
-                        </div>
-                      </Card>
-                    )}
-
-                    {/* Inquiry Status */}
-                    {userStatus?.inquiry && (
-                      <Card className="border-none shadow-sm rounded-[32px] bg-white overflow-hidden border border-line">
-                        <div className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-                          <div className="flex items-center gap-5">
-                            <div className="w-14 h-14 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-600">
-                              <MessageCircle className={`w-7 h-7 ${userStatus.inquiry.status === 'pending' ? 'animate-pulse' : ''}`} />
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1">Support Status Protocol</p>
-                              <h3 className="font-black text-obsidian tracking-tighter flex items-center gap-3 text-xl">
-                                [{userStatus.inquiry.type === 'product' ? '상품' : '일반'}] {userStatus.inquiry.subject}
-                                <Badge variant="outline" className={`ml-2 px-3 py-0.5 rounded-full text-[10px] font-bold ${userStatus.inquiry.status === 'pending' ? 'bg-amber-50 text-primary border-primary/30' :
-                                  userStatus.inquiry.status === 'resolved' ? 'bg-emerald-50 text-secondary border-emerald-200' :
-                                    'bg-surface text-foreground/70 border-line'
-                                  }`}>
-                                  {userStatus.inquiry.status === 'pending' ? '답변 대기' :
-                                    userStatus.inquiry.status === 'resolved' ? '해결 완료' :
-                                      userStatus.inquiry.status === 'in_progress' ? '처리 중' : '진행 중'}
-                                </Badge>
-                              </h3>
-                              <p className="text-sm font-medium text-slate mt-1">
-                                {userStatus.inquiry.status === 'pending' ? '관리자가 문의 내용을 확인하고 있습니다.' :
-                                  userStatus.inquiry.status === 'resolved' ? '문의에 대한 답변이 완료되었습니다.' :
-                                    '담당자가 내용을 확인 및 답변을 준비 중입니다.'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="w-full md:w-auto">
-                            <Button variant="outline" asChild className="w-full md:w-auto h-12 rounded-xl border-line font-black text-xs px-8 hover:bg-surface">
-                              <Link href="/me/inquiries">문의 내역 보기</Link>
-                            </Button>
-                          </div>
-                        </div>
-                      </Card>
-                    )}
-                  </div>
-                )}
-
-                {/* 전담 네비게이터 상담 센터 */}
-                <Card className="border-none shadow-2xl rounded-[40px] bg-white overflow-hidden border border-indigo-50 transition-all hover:shadow-3xl">
-                  <CardHeader className="p-8 md:p-10 pb-0 border-none">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="p-4 bg-indigo-50 rounded-2xl text-secondary shadow-inner">
-                          <MessageCircle className="h-7 w-7" />
-                        </div>
-                        <div>
-                          <h3 className="font-black text-obsidian tracking-tighter text-xl">
-                            {(session.user as any)?.isNavigator ? '담당 회원 상담 관리' : '전담 네비게이터 상담'}
-                          </h3>
-                          <p className="text-[10px] font-black text-secondary uppercase tracking-[0.2em]">Navigator Consultation Center</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-8 md:p-10">
-                    <NavigatorConsultationCenter />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {activeTab === 'profile' && (
-              <motion.div
-                key="profile"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.15 }}
-                className="space-y-6 md:space-y-8 animate-in fade-in"
-              >
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                  {/* 프로필 정보 (좌측/전체 너비) */}
-                  <div className="lg:col-span-8 space-y-6 md:space-y-8">
-                    <Card className="border-none shadow-sm rounded-[32px] md:rounded-[40px] bg-white overflow-hidden">
-                      <CardHeader className="p-6 md:p-10 pb-4 flex flex-row items-center justify-between border-b border-mist">
-                        <div className="flex items-center gap-3">
-                          <div className="p-3 bg-mist rounded-2xl text-obsidian">
-                            <User className="h-6 w-6" />
-                          </div>
-                          <CardTitle className="text-2xl font-black text-obsidian tracking-tighter">프로필 설정</CardTitle>
-                        </div>
-                        <Button variant="ghost" onClick={() => setIsEditing(!isEditing)} className="font-black text-xs text-slate hover:bg-mist h-10 px-4 rounded-xl">
-                          {isEditing ? <><X className="h-4 w-4 mr-2" /> 취소</> : <><Settings className="h-4 w-4 mr-2" /> 편집</>}
-                        </Button>
-                      </CardHeader>
-                      <CardContent className="p-6 md:p-10 space-y-8 md:space-y-10">
-                        <div className="bg-mist/30 p-5 md:p-8 rounded-[24px] md:rounded-[32px] border border-line/30 flex items-center gap-4 md:gap-6">
-                          <div className="relative w-20 h-20 rounded-[28px] overflow-hidden bg-slate-100 shadow-md border-4 border-white group/avatar flex-shrink-0">
-                            <Image 
-                              src={formData.avatar || session.user?.image || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E"} 
-                              alt="" 
-                              fill 
-                              className="object-cover" 
-                            />
-                            {isEditing && (
-                              <label className="absolute inset-0 bg-black/40 flex items-center justify-center cursor-pointer opacity-0 group-hover/avatar:opacity-100 transition-opacity">
-                                <Upload className="text-white h-5 w-5" />
-                                <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} aria-label="프로필 이미지 변경" />
-                              </label>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <h3 className="text-lg font-black text-obsidian truncate">{session.user?.name}</h3>
-                            <p className="text-xs font-bold text-slate flex items-center gap-1.5 opacity-60 truncate">
-                              <Mail className="h-3 w-3" /> {session.user?.email}
-                            </p>
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              <Badge className="bg-chapter-accent/10 text-chapter-accent border-none font-black text-[9px] uppercase tracking-widest px-2.5 py-0.5">
-                                {(session.user as any)?.provider || 'Email'}
-                              </Badge>
-                              {['essence', 'balance', 'miracle'].includes(userData?.grade?.toLowerCase()) && (
-                                <Badge className="bg-primary-container/50 text-primary border-none font-black text-[8px] uppercase tracking-widest px-2 py-0.5 flex items-center gap-1">
-                                  <Zap className="w-2.5 h-2.5" /> FOUNDER
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-6">
-                          <div className="space-y-3">
-                            <Label className="text-xs font-black text-slate uppercase tracking-widest ml-1">연락처</Label>
-                            <div className="relative">
-                              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate h-4 w-4 opacity-40" />
-                              <Input
-                                name="phone"
-                                value={formData.phone}
-                                onChange={handleInputChange}
-                                disabled={!isEditing}
-                                placeholder="010-XXXX-XXXX"
-                                className="h-14 pl-12 rounded-2xl bg-mist/50 border-line focus:ring-chapter-accent"
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-3">
-                            <Label className="text-xs font-black text-slate uppercase tracking-widest ml-1">배송지 정보</Label>
-                            <div className="space-y-3">
-                              <UnifiedAddressSearch
-                                provider="google"
-                                onAddressSelect={handleAddressSelect}
-                                disabled={!isEditing}
-                              />
-                              <div className="grid grid-cols-1 gap-3">
-                                <Input value={formData.zipCode} readOnly placeholder="우편번호" className="h-14 rounded-2xl bg-mist/50 border-line" />
-                                <Input value={formData.address1} readOnly placeholder="주소" className="h-14 rounded-2xl bg-mist/50 border-line" />
-                                <Input name="address2" value={formData.address2} onChange={handleInputChange} disabled={!isEditing} placeholder="상세 주소를 입력하세요" className="h-14 rounded-2xl bg-mist/50 border-line" />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="space-y-3">
-                            <Label className="text-xs font-black text-slate uppercase tracking-widest ml-1">알림 및 동의</Label>
-                            <div className="space-y-3">
-                              <div className={`h-14 flex items-center justify-between px-5 rounded-2xl border transition-all ${formData.marketingConsent ? 'border-chapter-accent bg-chapter-accent/5' : 'border-line bg-mist/50'}`}>
-                                <label htmlFor="marketing" className="text-sm font-bold text-slate cursor-pointer select-none">이벤트 수신동의</label>
-                                <Checkbox
-                                  id="marketing"
-                                  checked={formData.marketingConsent}
-                                  onCheckedChange={(c) => setFormData(prev => ({ ...prev, marketingConsent: c as boolean }))}
-                                  disabled={!isEditing}
-                                  className="rounded-md"
-                                />
-                              </div>
-                              <div className={`h-14 flex items-center justify-between px-5 rounded-2xl border transition-all ${notificationPermission === 'granted' ? 'border-chapter-accent bg-chapter-accent/5' : 'border-line bg-mist/50'}`}>
-                                <div className="flex items-center gap-2">
-                                  <Bell className={`h-4 w-4 ${notificationPermission === 'granted' ? 'text-chapter-accent' : 'text-slate opacity-40'}`} />
-                                  <span className="text-sm font-bold text-slate">푸시 알림</span>
-                                </div>
-                                <Switch 
-                                  checked={notificationPermission === 'granted'}
-                                  onCheckedChange={handleNotificationToggle}
-                                  className="data-[state=checked]:bg-chapter-accent"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {isEditing && (
-                          <Button onClick={handleSave} className="w-full h-16 rounded-[24px] bg-obsidian text-mist font-black text-lg shadow-xl hover:scale-[1.01] transition-all flex items-center justify-center gap-2">
-                            <Save className="h-5 w-5" /> 프로필 저장하기
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* 모임 클럽하우스 프로토콜 (우측/사이드바) */}
-                  <div className="lg:col-span-4">
-                    <Card className="border-none shadow-sm rounded-[32px] md:rounded-[40px] bg-white overflow-hidden border border-emerald-100/30">
-                      <CardHeader className="p-6 md:p-8 pb-4 flex flex-row items-center justify-between border-b border-mist">
-                        <div className="flex items-center gap-3">
-                          <div className="p-3 bg-emerald-50 rounded-2xl text-secondary">
-                            <Trophy className="h-6 w-6" />
-                          </div>
-                          <div>
-                            <CardTitle className="font-black text-obsidian tracking-tighter text-xl">모임 클럽하우스</CardTitle>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-6 md:p-8 space-y-6">
-                        {mileLoading ? (
-                          <div className="py-12 flex justify-center items-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
-                          </div>
-                        ) : mileTeamInfo ? (
-                          <div className="space-y-6">
-                            <div className="bg-emerald-50/40 p-4 rounded-[20px] border border-emerald-100 flex flex-col gap-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-secondary-container rounded-xl flex items-center justify-center text-secondary font-black text-base shrink-0">
-                                  ⚽
-                                </div>
-                                <div className="min-w-0">
-                                  <h4 className="text-base font-black text-obsidian tracking-tight truncate flex items-center gap-1.5">
-                                    {mileTeamInfo.teamName}
-                                  </h4>
-                                  <Badge className="bg-secondary text-white font-black text-[8px] px-1.5 py-0.5 rounded mt-0.5">
-                                    {session.user?.mileRole === 'leader' ? '호스트/조장' : 
-                                     session.user?.mileRole === 'member' ? '팀원/스터디원' : '청강생/외부 자문'}
-                                  </Badge>
-                                </div>
-                              </div>
-                              <Button asChild size="sm" className="w-full h-11 rounded-xl bg-secondary hover:bg-secondary text-white font-black px-4 shadow-sm">
-                                <Link href="/mile/mypage" className="flex items-center justify-center gap-1.5">
-                                  클럽하우스 입장 <ChevronRight className="h-3.5 w-3.5" />
-                                </Link>
-                              </Button>
-                            </div>
-
-                            {session.user?.mileRole === 'leader' && (
-                              <div className="p-4 rounded-[20px] bg-surface border border-line space-y-3 text-[11px]">
-                                <h5 className="font-black text-obsidian tracking-tight flex items-center gap-1">
-                                  <span>📢</span> 스쿼드 초대 코드
-                                </h5>
-                                <p className="text-slate font-bold leading-relaxed">팀원/스터디원 및 학부모 가입 코드를 배포해 주세요.</p>
-                                
-                                <div className="space-y-2">
-                                  <div className="p-3 bg-white rounded-lg border border-line flex items-center justify-between gap-1">
-                                    <span className="font-black text-obsidian uppercase tracking-wider truncate">
-                                      {mileTeamInfo.teamCode || mileTeamInfo.team?.teamCode || 'ST-CODE'}
-                                    </span>
-                                    <Button 
-                                      size="sm" 
-                                      variant="ghost"
-                                      onClick={() => {
-                                        const code = mileTeamInfo.teamCode || mileTeamInfo.team?.teamCode;
-                                        if (code) {
-                                          navigator.clipboard.writeText(code.toUpperCase());
-                                          alert(`팀 초대 코드 (${code.toUpperCase()})가 복사되었습니다!`);
-                                        }
-                                      }}
-                                      className="h-7 px-2 text-[10px] font-black shrink-0 hover:bg-surface border border-line"
-                                    >
-                                      복사
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ) : milePendingTeam ? (
-                          <div className="bg-amber-50/40 p-4 rounded-[20px] border border-amber-100 space-y-2 text-xs">
-                            <h4 className="font-black text-obsidian tracking-tight flex items-center gap-1.5">
-                              <Clock className="w-4 h-4 text-primary animate-pulse" />
-                              {milePendingTeam.teamName} (심사 중)
-                            </h4>
-                            <p className="font-medium text-foreground/70 leading-normal">보안 승인 심사가 진행 중입니다. 1~2영업일이 소요됩니다.</p>
-                          </div>
-                        ) : (
-                          <div className="space-y-4 text-xs font-bold text-slate">
-                            <p className="leading-relaxed">팀 코드로 합류하거나 호스트/개설자 권한으로 신규 팀 개설 신청을 진행할 수 있습니다.</p>
-                            <div className="p-4 rounded-[20px] bg-surface border border-line space-y-3">
-                              <p className="font-black text-obsidian">초대 코드로 팀 합류</p>
-                              <div className="flex gap-1.5">
-                                <Input
-                                  value={mileInviteCode}
-                                  onChange={(e) => setMileInviteCode(e.target.value)}
-                                  placeholder="코드 입력"
-                                  className="h-10 text-xs rounded-xl bg-white border-line"
-                                />
-                                <Button onClick={handleMileJoin} disabled={mileJoining} size="sm" className="h-10 rounded-xl bg-obsidian text-white font-black px-4">
-                                  {mileJoining ? '...' : '합류'}
-                                </Button>
-                              </div>
-                            </div>
-                            <Button onClick={() => setMileCreationMode(!mileCreationMode)} className="w-full h-11 rounded-xl bg-secondary hover:bg-secondary text-white font-black text-xs">
-                              {mileCreationMode ? '신청 양식 닫기' : '신규 모임 창단 신청'}
-                            </Button>
-
-                            {mileCreationMode && (
-                              <div className="bg-surface/50 p-4 rounded-[20px] border border-line space-y-3 animate-in fade-in slide-in-from-bottom-2">
-                                <div className="space-y-2 text-[11px]">
-                                  <Label className="font-black text-foreground/70">팀 이름</Label>
-                                  <Input value={mileNewTeamName} onChange={(e) => setMileNewTeamName(e.target.value)} placeholder="예: gleemile FC" className="h-9 rounded-lg bg-white" />
-                                </div>
-                                <div className="space-y-2 text-[11px]">
-                                  <Label className="font-black text-foreground/70">카테고리</Label>
-                                  <select value={mileNewCategory} onChange={(e) => setMileNewCategory(e.target.value)} className="w-full h-9 px-2 rounded-lg border bg-white text-[11px] font-bold">
-                                    <option value="youth">유소년 클럽</option>
-                                    <option value="amateur">성인 조기 모임 / 동호회</option>
-                                    <option value="school">초/중/고/대학교 엘리트 팀</option>
-                                    <option value="academy">전문 사설 아카데미</option>
-                                  </select>
-                                </div>
-                                <div className="space-y-2 text-[11px]">
-                                  <Label className="font-black text-foreground/70">활동 지역</Label>
-                                  <Input value={mileNewRegion} onChange={(e) => setMileNewRegion(e.target.value)} placeholder="예: 서울 송파구" className="h-9 rounded-lg bg-white" />
-                                </div>
-                                {mileError && <p className="text-[10px] text-rose-500">⚠ {mileError}</p>}
-                                <Button onClick={handleMileCreate} disabled={mileCreationLoading} className="w-full h-10 bg-secondary hover:bg-secondary text-white font-black rounded-xl">
-                                  {mileCreationLoading ? '제출 중...' : '신청서 제출'}
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
+
+        {/* 4. Settings: Commerce Expansion Layer */}
+        <div className="bg-white rounded-[28px] border border-line shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-line bg-slate-50/50 flex items-center gap-2">
+            <Settings2 className="w-4 h-4 text-slate-500" />
+            <h3 className="text-sm font-black text-obsidian">내 정보 관리</h3>
+          </div>
+          <div className="p-5 space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                <Smartphone className="w-3.5 h-3.5" /> 연락처
+              </label>
+              <Input 
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="010-0000-0000"
+                className="h-12 rounded-xl bg-slate-50 border-line text-sm font-medium"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5" /> 기본 주소지
+              </label>
+              <Input 
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="상세 주소를 입력해주세요"
+                className="h-12 rounded-xl bg-slate-50 border-line text-sm font-medium"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5" /> 성별
+              </label>
+              <div className="flex gap-2">
+                {['male', 'female', 'none'].map((g) => (
+                  <Button
+                    key={g}
+                    variant={gender === g ? "default" : "outline"}
+                    onClick={() => setGender(g as any)}
+                    className={`flex-1 h-12 rounded-xl font-bold ${gender === g ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'text-slate-500'}`}
+                  >
+                    {g === 'male' ? '남성' : g === 'female' ? '여성' : '선택안함'}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                <Activity className="w-3.5 h-3.5" /> 연령대 (10대 ~ 60대 이상)
+              </label>
+              <div className="px-2 pb-6">
+                <input
+                  type="range"
+                  min="10"
+                  max="60"
+                  step="10"
+                  value={ageGroup || '30'}
+                  onChange={(e) => setAgeGroup(e.target.value)}
+                  className="w-full accent-emerald-500"
+                />
+                <div className="text-center mt-2 text-sm font-bold text-emerald-600">
+                  {ageGroup ? (ageGroup === '60' ? '60대 이상' : `${ageGroup}대`) : '선택해주세요 (슬라이더 이동)'}
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" /> 소개자 (선택)
+              </label>
+              <Input 
+                value={recommender}
+                onChange={(e) => setRecommender(e.target.value)}
+                placeholder="추천인/소개자가 있다면 입력"
+                className="h-12 rounded-xl bg-slate-50 border-line text-sm font-medium"
+              />
+            </div>
+            <Button 
+              onClick={handleSaveSettings}
+              disabled={isSaving}
+              className="w-full h-12 rounded-xl bg-obsidian hover:bg-slate-800 text-white font-bold"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : '변경사항 저장'}
+            </Button>
+          </div>
+        </div>
+
+        {/* 5. Privacy & Notification Control Center */}
+        <div className="bg-white rounded-[28px] border border-line shadow-sm overflow-hidden">
+          <div className="p-5 space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5 text-sm font-black text-obsidian">
+                  <EyeOff className="w-4 h-4 text-indigo-500" /> 익명 요약 공개 모드
+                </div>
+                <p className="text-[10px] text-slate-500 font-medium">웰니스 지표를 리더보드에 익명으로 요약하여 노출합니다.</p>
+              </div>
+              <Switch checked={privacyMode} onCheckedChange={setPrivacyMode} />
+            </div>
+            <div className="h-px w-full bg-line" />
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5 text-sm font-black text-obsidian">
+                  <Bell className="w-4 h-4 text-rose-500" /> 긴급 공지 알림 수신
+                </div>
+                <p className="text-[10px] text-slate-500 font-medium">일정 알림 및 FCM 푸시 메시지를 수신합니다.</p>
+              </div>
+              <Switch checked={pushEnabled} onCheckedChange={setPushEnabled} />
+            </div>
+          </div>
+        </div>
+
+        {/* Logout Button */}
+        <Button 
+          onClick={() => signOut({ callbackUrl: '/' })}
+          variant="outline"
+          className="w-full h-14 bg-transparent hover:bg-rose-50 text-rose-500 border border-slate-200 hover:border-rose-200 rounded-2xl font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2"
+        >
+          <LogOut className="w-4 h-4" />
+          안전하게 로그아웃
+        </Button>
+
       </div>
-    </ChapterWrapper>
+
+      {/* Modals for Leave/Delete */}
+      {leaveModalType && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] w-full max-w-sm overflow-hidden shadow-2xl p-6 animate-in zoom-in-95">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center ${leaveModalType === 'delegate' ? 'bg-amber-100 text-amber-500' : 'bg-red-100 text-red-500'}`}>
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-lg font-black text-slate-800">
+                  {leaveModalType === 'delegate' && '방장 권한 위임 필요'}
+                  {leaveModalType === 'leave' && '클럽에서 탈퇴하시겠습니까?'}
+                  {leaveModalType === 'delete' && '클럽을 영구 삭제하시겠습니까?'}
+                </h3>
+                <p className="text-sm font-medium text-slate-500">
+                  {leaveModalType === 'delegate' && '다른 멤버가 활동 중이므로 삭제할 수 없습니다. 방장 권한을 다른 멤버에게 넘겨야 탈퇴가 가능합니다.'}
+                  {leaveModalType === 'leave' && `정말 [${selectedTeamForLeave?.teamName}] 클럽에서 탈퇴하시겠습니까?`}
+                  {leaveModalType === 'delete' && `나 홀로 있는 클럽입니다. 삭제 시 모든 활동 데이터가 영구히 지워집니다.`}
+                </p>
+              </div>
+
+              <div className="flex gap-3 w-full pt-4">
+                <Button 
+                  onClick={() => { setLeaveModalType(null); setSelectedTeamForLeave(null); }}
+                  variant="outline"
+                  className="flex-1 rounded-xl h-12 text-slate-500 font-bold border-slate-200"
+                >
+                  취소
+                </Button>
+                <Button 
+                  onClick={handleConfirmLeave}
+                  disabled={isLeaving}
+                  className={`flex-1 rounded-xl h-12 font-bold text-white ${leaveModalType === 'delegate' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-red-500 hover:bg-red-600'}`}
+                >
+                  {isLeaving ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                    leaveModalType === 'delegate' ? '위임하러 가기' : '네, 진행합니다'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

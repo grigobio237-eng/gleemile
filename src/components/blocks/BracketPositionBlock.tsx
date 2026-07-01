@@ -1,30 +1,31 @@
 import React, { useState } from 'react';
+import { NotificationBadge } from '@/components/ui/NotificationBadge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Trophy, Users, Shuffle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { normalizeRole, isManagerOrHigher } from '@/types/role';
 
 interface BlockProps {
+  unreadCount?: number;
   role: string;
 }
 
-export function BracketPositionBlock({ role }: BlockProps) {
-  return (
-    <Card className="rounded-2xl border-none shadow-lg overflow-hidden bg-white">
-      <div className="px-4 py-3 border-b border-line flex items-center justify-between bg-gradient-to-r from-amber-50 to-white">
+import Link from 'next/link';
+
+export function BracketPositionBlock({ role, teamId , unreadCount}: BlockProps & { teamId?: string }) {
+  const content = (
+    <Card className="rounded-2xl border border-slate-100 shadow-sm bg-white hover:shadow-md hover:border-amber-200 transition-all cursor-pointer relative">
+      <NotificationBadge count={unreadCount} />
+      <div className="px-4 py-3 border-b border-line flex items-center justify-between bg-gradient-to-r from-amber-50 to-white rounded-t-2xl">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
             <Trophy className="w-4 h-4 text-white" />
           </div>
           <div>
-            <p className="font-black text-sm text-obsidian leading-tight">대진표/포지션 보드</p>
-            <p className="text-[10px] font-bold text-slate-500">기량 기반 자동 스쿼드 배정</p>
+            <p className="font-black text-sm text-obsidian leading-tight">전술 보드 및 라인업</p>
+            <p className="text-[10px] font-bold text-slate-500">기량 기반 수동 스쿼드 배정</p>
           </div>
         </div>
-        {(role === 'director' || role === 'head_coach' || role === 'coach') && (
-          <Button size="sm" variant="outline" className="h-7 text-xs px-2 rounded-lg border-amber-200 text-amber-700 hover:bg-amber-50 flex gap-1">
-            <Shuffle className="w-3.5 h-3.5" /> 자동 조짜기
-          </Button>
-        )}
       </div>
       <CardContent className="p-3">
         
@@ -65,5 +66,11 @@ export function BracketPositionBlock({ role }: BlockProps) {
 
       </CardContent>
     </Card>
+  );
+
+  return (
+    <Link href={teamId ? `/mile/${teamId}/lineup` : '/'} className="block w-full h-full">
+      {content}
+    </Link>
   );
 }

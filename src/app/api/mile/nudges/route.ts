@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -20,12 +20,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: [] });
     }
 
+    const { normalizeRole, isManagerOrHigher } = require('@/types/role');
+    const normalizedRole = normalizeRole(role);
+
     // 총무/조장 권한의 넛지 (부상 알림 포함)
-    if (role === 'leader') {
+    if (isManagerOrHigher(normalizedRole)) {
       nudges.push({
         id: 'c-1',
         type: 'INJURY_RISK',
-        title: '[위험 감지] 이태양 팀원/스터디원 우측 무릎 과부하 예상',
+        title: '[위험 감지] 이태양 팀원 우측 무릎 과부하 예상',
         message: 'ACWR 1.8 초과. 오늘 훈련 강도 조절이 필요합니다.'
       });
       nudges.push({
@@ -37,12 +40,12 @@ export async function GET(req: NextRequest) {
       nudges.push({
         id: 'c-3',
         type: 'MENTAL_CARE',
-        title: '[집중 케어] 김민수 팀원/스터디원 번아웃 징후 포착',
+        title: '[집중 케어] 김민수 팀원 번아웃 징후 포착',
         message: '스트레스 지수가 높게 유지되고 있습니다. 개인 면담을 권장합니다.'
       });
     } 
-    // 부모/청강생/외부 자문 권한의 넛지 (부상 알림 제외)
-    else if (role === 'supporter') {
+    // 방문/참관인 권한의 넛지 (부상 알림 제외)
+    else if (normalizedRole === 'guest') {
       nudges.push({
         id: 'g-1',
         type: 'MEAL_PLAN',
@@ -56,8 +59,8 @@ export async function GET(req: NextRequest) {
         message: '최근 보이지 않는 심리적 압박감을 느끼고 있을 수 있습니다. 성적보다는 과정에 대한 칭찬을 건네어 보세요.'
       });
     } 
-    // 팀원/스터디원 권한의 넛지 (부상 알림 제외)
-    else if (role === 'member') {
+    // 팀원 권한의 넛지 (부상 알림 제외)
+    else if (normalizedRole === 'member') {
       nudges.push({
         id: 'p-1',
         type: 'MEAL_PLAN',

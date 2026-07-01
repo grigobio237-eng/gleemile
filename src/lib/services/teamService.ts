@@ -60,11 +60,11 @@ export async function createTeamWithUniqueCode(teamName: string, creatorUserId: 
             createdAt: FieldValue.serverTimestamp()
           });
           
-          // 3) 방장 권한(director) 셋업
+          // 3) 개설자 권한(owner) 셋업
           transaction.set(memberRef, {
             teamId: newTeamId,
             userId: creatorUserId,
-            role: 'director' as TeamRole,
+            role: 'owner' as TeamRole,
             status: 'active',
             joinedAt: FieldValue.serverTimestamp()
           });
