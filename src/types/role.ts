@@ -3,8 +3,8 @@ export type TeamRole = 'owner' | 'manager' | 'member' | 'guest';
 export const ROLE_LABELS: Record<TeamRole, string> = {
   owner: '관리자',
   manager: '운영진',
-  member: '팀원',
-  guest: '방문'
+  member: '회원',
+  guest: '참관인'
 };
 
 /**

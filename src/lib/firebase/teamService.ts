@@ -64,28 +64,48 @@ export const sendChatMessage = async (
 /**
  * 👑 임원(Manager) 승격 및 강등 권한 위임
  * 최고 관리자(owner)만이 다른 멤버의 role을 변경할 수 있습니다.
+ * team_members(레거시)와 member_summaries(현행) 양쪽 컬렉션을 동기화합니다.
  */
 export const assignMemberRole = async (
   teamId: string,
   targetUserId: string,
-  newRole: 'manager' | 'member' | 'supporter',
+  newRole: 'manager' | 'member' | 'guest',
   currentUserId: string
 ) => {
-  // 1. 방장 권한 체크 (서버사이드/클라이언트 모두 안전하게 이중 체크)
-  const currentUserMemberRef = doc(db, 'team_members', `${teamId}_${currentUserId}`);
-  const currentUserSnap = await getDoc(currentUserMemberRef);
+  // 1. 방장 권한 체크 — teams 문서의 ownerId 또는 member_summaries의 role로 이중 검증
+  const teamRef = doc(db, 'teams', teamId);
+  const teamSnap = await getDoc(teamRef);
+  if (!teamSnap.exists()) throw new Error("팀 정보를 찾을 수 없습니다.");
   
-  if (!currentUserSnap.exists()) throw new Error("멤버 정보를 찾을 수 없습니다.");
-  if (currentUserSnap.data().role !== 'owner') {
-    throw new Error("권한이 없습니다. 방장만 등급을 변경할 수 있습니다.");
+  const isOwnerByTeam = teamSnap.data().ownerId === currentUserId;
+  
+  const currentSummaryRef = doc(db, `teams/${teamId}/member_summaries`, currentUserId);
+  const currentSummarySnap = await getDoc(currentSummaryRef);
+  const isOwnerBySummary = currentSummarySnap.exists() && currentSummarySnap.data().role === 'owner';
+  
+  if (!isOwnerByTeam && !isOwnerBySummary) {
+    throw new Error("권한이 없습니다. 관리자만 등급을 변경할 수 있습니다.");
+  }
+
+  // 2. 자기 자신의 등급은 변경 불가
+  if (targetUserId === currentUserId) {
+    throw new Error("자신의 등급은 변경할 수 없습니다.");
   }
   
-  // 2. 대상 멤버 등급 업데이트
-  const targetMemberRef = doc(db, 'team_members', `${teamId}_${targetUserId}`);
-  await updateDoc(targetMemberRef, {
+  // 3. 대상 멤버 등급 업데이트 — 양쪽 컬렉션 동기화
+  const targetSummaryRef = doc(db, `teams/${teamId}/member_summaries`, targetUserId);
+  await updateDoc(targetSummaryRef, {
     role: newRole,
-    // (Optional) updatedAt: serverTimestamp() 로직을 추가하여 Audit log 관리 가능
   });
+
+  // team_members 레거시 컬렉션도 동기화 (존재하는 경우)
+  const targetMemberRef = doc(db, 'team_members', `${teamId}_${targetUserId}`);
+  const targetMemberSnap = await getDoc(targetMemberRef);
+  if (targetMemberSnap.exists()) {
+    await updateDoc(targetMemberRef, {
+      role: newRole,
+    });
+  }
 };
 
 /**

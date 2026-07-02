@@ -302,7 +302,7 @@ function DashboardContent() {
       <div className={`max-w-4xl mx-auto pt-4 md:pt-10 flex flex-col ${view === 'chat' ? 'h-full space-y-4' : 'space-y-6'}`}>
         
         {/* 헤더 */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Link href="/" className="inline-flex items-center gap-1 text-slate-400 hover:text-emerald-600 transition-colors text-sm font-bold">

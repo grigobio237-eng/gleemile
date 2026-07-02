@@ -3,16 +3,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
+import { assignMemberRole } from '@/lib/firebase/teamService';
+import { normalizeRole, ROLE_LABELS, type TeamRole } from '@/types/role';
 import { 
   Loader2, Settings, ArrowRight, ArrowLeft, Search,
   Megaphone, MessageCircle, Calendar, DollarSign, HeartPulse,
   Activity, PenTool, LayoutTemplate, Users, ShieldAlert,
   GraduationCap, BookOpen, ThumbsUp, Timer, CalendarCheck,
   Target, KanbanSquare, RefreshCw, ActivitySquare, ClipboardList,
-  Flame, Image, FileVideo, Scale
+  Flame, Image, FileVideo, Scale, Crown, ChevronDown, UserCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -52,6 +54,19 @@ const CATEGORY_TABS = [
 
 const PREDEFINED_EMOJIS = ['🚀', '⚽', '🎨', '💼', '🏆', '🔥', '💡', '🌟', '📚', '💪'];
 
+interface MemberSummary {
+  id: string;
+  name: string;
+  role: string;
+  joinedAt?: Timestamp;
+}
+
+const ROLE_OPTIONS: { value: TeamRole; label: string; color: string; bg: string }[] = [
+  { value: 'manager', label: '운영진', color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200' },
+  { value: 'member', label: '회원', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
+  { value: 'guest', label: '참관인', color: 'text-slate-600', bg: 'bg-slate-50 border-slate-200' },
+];
+
 export default function TeamSetupPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -70,6 +85,13 @@ export default function TeamSetupPage() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+
+  // 👑 회원 등급 관리 상태
+  const [isOwner, setIsOwner] = useState(false);
+  const [members, setMembers] = useState<MemberSummary[]>([]);
+  const [teamOwnerId, setTeamOwnerId] = useState('');
+  const [roleChanging, setRoleChanging] = useState<string | null>(null); // 변경 중인 멤버 ID
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null); // 열린 드롭다운 ID
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -90,6 +112,22 @@ export default function TeamSetupPage() {
         const data = teamSnap.data();
         setTeamName(data.teamName || '새로운 팀');
         setTeamIcon(data.teamIcon || '');
+        
+        const ownerId = data.ownerId || '';
+        setTeamOwnerId(ownerId);
+        
+        // Owner 여부 확인
+        const currentUserId = session?.user?.id;
+        if (currentUserId && ownerId === currentUserId) {
+          setIsOwner(true);
+        } else if (currentUserId) {
+          // member_summaries에서도 확인
+          const mySummaryRef = doc(db, `teams/${teamId}/member_summaries`, currentUserId);
+          const mySummarySnap = await getDoc(mySummaryRef);
+          if (mySummarySnap.exists() && mySummarySnap.data().role === 'owner') {
+            setIsOwner(true);
+          }
+        }
         
         const template = data.templateType || 'common';
         setTeamTemplate(template);
@@ -119,6 +157,33 @@ export default function TeamSetupPage() {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 👑 Owner일 때 멤버 목록 실시간 리스닝
+  useEffect(() => {
+    if (!isOwner || !teamId) return;
+    const q = query(collection(db, `teams/${teamId}/member_summaries`), orderBy('joinedAt', 'asc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched: MemberSummary[] = [];
+      snapshot.forEach(docSnap => {
+        fetched.push({ id: docSnap.id, ...docSnap.data() } as MemberSummary);
+      });
+      setMembers(fetched);
+    });
+    return () => unsubscribe();
+  }, [isOwner, teamId]);
+
+  const handleRoleChange = async (targetUserId: string, newRole: TeamRole) => {
+    if (!session?.user?.id || !teamId) return;
+    setRoleChanging(targetUserId);
+    try {
+      await assignMemberRole(teamId, targetUserId, newRole as 'manager' | 'member' | 'guest', session.user.id);
+      setOpenDropdown(null);
+    } catch (error: any) {
+      alert(error.message || '등급 변경에 실패했습니다.');
+    } finally {
+      setRoleChanging(null);
     }
   };
 
@@ -291,6 +356,120 @@ export default function TeamSetupPage() {
             <p className="text-xs text-slate-400 mt-2 font-bold uppercase tracking-widest">Preview</p>
           </div>
         </section>
+
+        {/* 👑 회원 등급 관리 섹션 — Owner만 표시 */}
+        {isOwner && (
+          <section className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
+                <Crown className="w-5 h-5 text-amber-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-slate-800">회원 등급 관리</h2>
+                <p className="text-xs text-slate-500 font-medium">관리자만 회원의 등급을 변경할 수 있습니다.</p>
+              </div>
+            </div>
+            
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <div className="grid grid-cols-[auto_1fr_auto] gap-x-3 gap-y-0.5 items-center px-2 mb-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">프로필</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">이름</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">등급</span>
+              </div>
+              
+              <div className="space-y-2">
+                {members.map((member) => {
+                  const memberRole = normalizeRole(member.role);
+                  const isSelf = member.id === session?.user?.id;
+                  const isMemberOwner = member.id === teamOwnerId || memberRole === 'owner';
+                  const isDropdownOpen = openDropdown === member.id;
+                  const isChanging = roleChanging === member.id;
+                  
+                  return (
+                    <div key={member.id} className="relative">
+                      <div className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
+                        isMemberOwner ? 'bg-amber-50/50 border-amber-200' : 'bg-slate-50/50 border-slate-100'
+                      }`}>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-slate-400 shrink-0 border border-slate-200">
+                            {isMemberOwner ? (
+                              <Crown className="w-4 h-4 text-amber-500" />
+                            ) : (
+                              <UserCircle2 className="w-5 h-5" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-sm font-bold text-slate-800 block truncate">
+                              {member.name}
+                              {isSelf && <span className="text-[10px] text-emerald-500 ml-1">(나)</span>}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* 등급 표시 / 변경 버튼 */}
+                        {isMemberOwner ? (
+                          <span className="text-xs font-bold text-amber-600 bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-200 shrink-0">
+                            👑 관리자
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => setOpenDropdown(isDropdownOpen ? null : member.id)}
+                            disabled={isChanging}
+                            className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all shrink-0 ${
+                              isDropdownOpen 
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-700 ring-1 ring-emerald-300'
+                                : memberRole === 'manager'
+                                  ? 'bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100'
+                                  : memberRole === 'member'
+                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            {isChanging ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <>
+                                {ROLE_LABELS[memberRole] || '회원'}
+                                <ChevronDown className={`w-3 h-3 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      
+                      {/* 드롭다운 */}
+                      {isDropdownOpen && !isMemberOwner && (
+                        <div className="absolute right-0 top-full mt-1 z-20 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden min-w-[140px] animate-in slide-in-from-top-2 duration-150">
+                          {ROLE_OPTIONS.map(option => (
+                            <button
+                              key={option.value}
+                              onClick={() => handleRoleChange(member.id, option.value)}
+                              disabled={memberRole === option.value}
+                              className={`w-full text-left px-4 py-2.5 text-sm font-bold transition-colors flex items-center justify-between ${
+                                memberRole === option.value
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'text-slate-700 hover:bg-slate-50'
+                              }`}
+                            >
+                              <span>{option.label}</span>
+                              {memberRole === option.value && (
+                                <span className="text-emerald-500 text-xs">✓ 현재</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {members.length === 0 && (
+                <p className="text-center text-sm text-slate-400 py-8 font-medium">등록된 회원이 없습니다.</p>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* Search & Filter */}
         <div className="space-y-4">
