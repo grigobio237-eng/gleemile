@@ -238,24 +238,6 @@ export default function MyPage() {
           </CardContent>
         </Card>
 
-        {/* 2. HUD Metrics */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-[24px] p-4 border border-line flex flex-col items-center justify-center text-center shadow-sm space-y-1">
-            <Activity className="w-5 h-5 text-indigo-400 mb-1" />
-            <span className="text-[10px] font-bold text-slate-400">출석률</span>
-            <span className="text-lg font-black text-obsidian">95%</span>
-          </div>
-          <div className="bg-white rounded-[24px] p-4 border border-line flex flex-col items-center justify-center text-center shadow-sm space-y-1">
-            <Flame className="w-5 h-5 text-orange-400 mb-1" />
-            <span className="text-[10px] font-bold text-slate-400">스트릭</span>
-            <span className="text-lg font-black text-obsidian">12일</span>
-          </div>
-          <div className="bg-white rounded-[24px] p-4 border border-line flex flex-col items-center justify-center text-center shadow-sm space-y-1">
-            <HeartPulse className="w-5 h-5 text-rose-400 mb-1" />
-            <span className="text-[10px] font-bold text-slate-400">평균 회복도</span>
-            <span className="text-lg font-black text-obsidian">88점</span>
-          </div>
-        </div>
 
         {/* 3. Multi-Squad Switcher */}
         <div className="bg-white rounded-[28px] border border-line shadow-sm p-5 space-y-4">
