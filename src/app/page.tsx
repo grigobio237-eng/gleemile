@@ -36,6 +36,21 @@ export default function RootHubPage() {
     const fetchLandingData = async () => {
       if (status === 'authenticated' && session?.user?.id) {
         try {
+          // [온보딩 인터셉터: 초대 링크 가입]
+          const inviteTeamId = sessionStorage.getItem('gleemile_invite_code');
+          if (inviteTeamId) {
+            // Firestore에 멤버 바인딩 (merge: true를 통해 무결성 보장)
+            const memberRef = doc(db, 'teams', inviteTeamId, 'members', session.user.id);
+            await setDoc(memberRef, { joinedAt: serverTimestamp() }, { merge: true });
+            
+            // 중복 방지를 위한 원자적 삭제
+            sessionStorage.removeItem('gleemile_invite_code');
+            
+            // 해당 팀 대시보드로 즉시 리다이렉트
+            router.push(`/mile/${inviteTeamId}/dashboard`);
+            return; // 이후의 랜딩 데이터 fetch 중단
+          }
+
           // 1. 내 모임 조회
           const myTeamsRef = collection(db, `users/${session.user.id}/teams`);
           const myTeamsSnap = await getDocs(myTeamsRef);
@@ -68,7 +83,7 @@ export default function RootHubPage() {
     };
 
     fetchLandingData();
-  }, [status, session]);
+  }, [status, session, router]);
 
   const handleCreateTeamClick = () => {
     setCreateModalOpen(true);

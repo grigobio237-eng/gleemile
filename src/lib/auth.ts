@@ -3,7 +3,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import KakaoProvider from 'next-auth/providers/kakao';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import { adminDb } from '@/lib/firebase/admin';
+import { adminDb, adminAuth } from '@/lib/firebase/admin';
 import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 
@@ -33,9 +33,55 @@ export const authOptions: AuthOptions = {
       name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' }
+        password: { label: 'Password', type: 'password' },
+        token: { label: 'Token', type: 'text' }
       },
       async authorize(credentials) {
+        // [이중 인증 브릿지] 매직 링크에서 넘어온 Firebase Token 처리
+        if (credentials?.token) {
+          try {
+            const decodedToken = await adminAuth.verifyIdToken(credentials.token);
+            const email = decodedToken.email;
+            if (!email) return null;
+
+            const usersRef = adminDb.collection('users');
+            const snapshot = await usersRef.where('email', '==', email).limit(1).get();
+
+            let userDoc: any;
+            if (snapshot.empty) {
+              const newUserRef = usersRef.doc();
+              const newUserData = {
+                email,
+                name: decodedToken.name || email.split('@')[0],
+                avatar: decodedToken.picture || '',
+                provider: 'magic-link',
+                providerId: decodedToken.uid,
+                globalRole: 'member',
+                createdAt: new Date(),
+                updatedAt: new Date()
+              };
+              await newUserRef.set(newUserData);
+              userDoc = { id: newUserRef.id, ...newUserData };
+            } else {
+              const snapDoc = snapshot.docs[0];
+              userDoc = { id: snapDoc.id, ...snapDoc.data() };
+            }
+
+            return {
+              id: userDoc.id,
+              email: userDoc.email,
+              name: userDoc.name,
+              image: userDoc.avatar || userDoc.image || '',
+              provider: userDoc.provider,
+              globalRole: userDoc.globalRole || 'member',
+            };
+          } catch (error) {
+            console.error('Magic link token error:', error);
+            return null;
+          }
+        }
+
+        // 기존 이메일/비밀번호 로그인 유지
         if (!credentials?.email || !credentials?.password) {
           return null;
         }

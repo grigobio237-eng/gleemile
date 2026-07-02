@@ -29,6 +29,7 @@ export const metadata: Metadata = {
 };
 
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { InAppBrowserGuard } from "@/components/pwa/InAppBrowserGuard";
 
 export default function RootLayout({
   children,
@@ -41,6 +42,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#FAF9F6]">
+        <InAppBrowserGuard />
         <Providers>{children}</Providers>
         <InstallPrompt />
       </body>

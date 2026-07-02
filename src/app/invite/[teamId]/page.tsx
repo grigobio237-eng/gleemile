@@ -1,21 +1,32 @@
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+'use client';
 
-export default async function InviteJoinPage({ params }: { params: Promise<{ teamId: string }> }) {
-  const resolvedParams = await params;
-  const teamId = resolvedParams.teamId;
-  const session = await getServerSession(authOptions);
+import { useEffect, use } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
-  // [중요: 카카오 인앱 브라우저 세션 유실 방지 가드]
-  if (!session?.user?.id) {
-    // 로그인되지 않은 유저는, 로그인 성공 후 다시 이 초대 주소로 무마찰 회귀하도록 callbackUrl 명시
-    redirect(`/auth/signin?callbackUrl=/invite/${teamId}`);
-  }
+export default function InviteJoinPage({ params }: { params: Promise<{ teamId: string }> }) {
+  const resolvedParams = use(params);
+  const router = useRouter();
+  const { status } = useSession();
 
-  // 로그인 된 유저라면 DB 쿼리로 TeamMember 등록 처리 로직 (생략: 백엔드 모듈 연동부)
-  // await joinTeam(session.user.id, teamId);
-  
-  // 아래는 실제 백엔드 연동 전 임시 Stub 리다이렉트입니다.
-  redirect(`/mile/${teamId}/dashboard`);
+  useEffect(() => {
+    if (resolvedParams.teamId) {
+      sessionStorage.setItem('gleemile_invite_code', resolvedParams.teamId);
+      
+      // 상태에 상관없이 홈으로 이동하여 온보딩 인터셉터가 처리하도록 함
+      if (status !== 'loading') {
+        router.push('/');
+      }
+    }
+  }, [resolvedParams.teamId, status, router]);
+
+  // 구름 마스코트 렌더링 등 UI가 필요하다면 여기에 추가 (찰나의 순간이므로 로딩 표시)
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#FFFDF9] to-[#FDF4E3] flex flex-col items-center justify-center p-4">
+      <div className="animate-[bounce_3s_infinite_ease-in-out]">
+        <img src="/images/confused.webp" alt="Mascot" width={120} height={120} className="drop-shadow-lg" />
+      </div>
+      <p className="mt-6 text-slate-600 font-medium text-lg">초대 링크를 확인 중입니다...</p>
+    </div>
+  );
 }

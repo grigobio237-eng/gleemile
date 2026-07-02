@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { GoogleIcon, KakaoIcon } from '@/components/ui/social-icons';
 import { Eye, EyeOff, Mail, Lock, ChevronLeft, ArrowRight } from 'lucide-react';
 import { isWebView, handleWebViewOAuth, openExternalBrowser } from '@/utils/webViewDetection';
+import { getAuth, sendSignInLinkToEmail } from 'firebase/auth';
+import { app } from '@/lib/firebase';
 
 function SigninContent() {
   const searchParams = useSearchParams();
@@ -20,6 +22,31 @@ function SigninContent() {
     email: '',
     password: '',
   });
+  
+  const [magicEmail, setMagicEmail] = useState('');
+  const [magicLoading, setMagicLoading] = useState(false);
+
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!magicEmail) return;
+    setMagicLoading(true);
+    const auth = getAuth(app);
+    const actionCodeSettings = {
+      url: "https://gleemile.com/auth/verify-magic-link",
+      handleCodeInApp: true,
+    };
+    try {
+      await sendSignInLinkToEmail(auth, magicEmail, actionCodeSettings);
+      window.localStorage.setItem('emailForSignIn', magicEmail);
+      alert('매직 링크가 이메일로 발송되었습니다. 이메일을 확인해주세요.');
+      setMagicEmail('');
+    } catch (error) {
+      console.error(error);
+      alert('매직 링크 발송 중 오류가 발생했습니다.');
+    } finally {
+      setMagicLoading(false);
+    }
+  };
 
   useEffect(() => {
     setIsInWebView(isWebView());
@@ -169,6 +196,33 @@ function SigninContent() {
             <GoogleIcon className="w-5 h-5" /> Google로 로그인
           </Button>
         </div>
+
+        <div className="relative my-8">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200"></div>
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-4 text-slate-500">이메일 매직 링크로 간편 로그인</span>
+          </div>
+        </div>
+
+        <form onSubmit={handleMagicLink} className="space-y-3">
+          <div className="relative">
+            <Mail className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+            <Input
+              type="email"
+              placeholder="이메일 주소 입력"
+              value={magicEmail}
+              onChange={(e) => setMagicEmail(e.target.value)}
+              required
+              className="pl-10 h-12 bg-white border-slate-200 rounded-2xl shadow-sm text-slate-800"
+            />
+          </div>
+          <Button type="submit" disabled={magicLoading} className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold">
+            {magicLoading ? '발송 중...' : '인증 링크 받기'}
+          </Button>
+        </form>
+
 
         <div className="text-center pt-4">
           <p className="text-sm text-slate-500">
