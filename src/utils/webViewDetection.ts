@@ -11,29 +11,34 @@ export const isWebView = (): boolean => {
   if (typeof window === 'undefined') return false;
 
   const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
-  
-  // 1. Chrome Safe Guard: 크롬 브라우저 자체인 경우 (모바일 크롬 포함)
-  // 안드로이드 WebView는 'Chrome/'이 포함되지만 반드시 '; wv)'가 함께 포함됩니다.
-  // 일반 크롬 앱이나 데스크톱 크롬은 '; wv)'가 없습니다.
-  const isChrome = /Chrome\//i.test(userAgent) && !/Safari\//i.test(userAgent) === false; // Safari/는 크롬 UA에도 포함됨
-  const hasWebViewMarker = /; wv\)/i.test(userAgent) || /WebView/i.test(userAgent);
-  
-  // 진짜 크롬 브라우저라면 WebView가 아닌 것으로 우선 판정
-  if (/Chrome\//i.test(userAgent) && !hasWebViewMarker) {
+
+  // 1. 실제 브라우저 Safe Guard: 먼저 정상 브라우저를 걸러냅니다.
+  // Android WebView는 '; wv)' 마커가 있거나, Chrome이 없거나, SamsungBrowser가 없습니다.
+  const hasWebViewMarker = /; wv\)/i.test(userAgent) || /\bWebView\b/i.test(userAgent);
+
+  // 실제 크롬 브라우저 (갤럭시 S24 포함) — '; wv)' 마커가 없으면 정상 크롬
+  const isRealChrome = /Chrome\//i.test(userAgent) && !hasWebViewMarker;
+
+  // 삼성 인터넷 브라우저 — WebView가 아님
+  const isSamsungBrowser = /SamsungBrowser\//i.test(userAgent);
+
+  // 실제 Safari (iOS 기본 브라우저) — WebView가 아님
+  const isRealSafari = /Safari\//i.test(userAgent) && /Version\//i.test(userAgent) && !/Chrome\//i.test(userAgent);
+
+  // 정상 브라우저라면 즉시 false 반환
+  if (isRealChrome || isSamsungBrowser || isRealSafari) {
     return false;
   }
 
-  // 2. WebView 감지 패턴 - 더 정교하게 수정
+  // 2. 이제 실제 WebView / 인앱브라우저 패턴 감지
   const webViewPatterns = [
-    /Version\/.*Chrome\/.*Mobile.*Safari\//i, // Android WebView 특정 패턴
-    /; wv\)/i, // Android WebView Standard marker
-    /WebView/i,
-    /(iPhone|iPod|iPad)(?!.*Safari\/)/i, // iOS WebView (Safari가 아닌 경우)
-    /Android.*(; wv\))/i, // Android WebView (버전 번호 0.0.0 충돌 방지)
-    /FBAN|FBAV/i, // Facebook in-app browser
-    /Line/i, // LINE in-app browser
-    /NAVER/i, // Naver in-app browser
-    /KAKAOTALK/i, // KakaoTalk in-app browser
+    /; wv\)/i,             // Android WebView 표준 마커
+    /\bWebView\b/i,        // 명시적 WebView 표기
+    /(iPhone|iPod|iPad)(?!.*Safari\/)/i, // iOS WebView (Safari UA 없는 경우)
+    /FBAN|FBAV/i,          // Facebook 인앱 브라우저
+    /\bLine\b/i,           // LINE 인앱 브라우저
+    /NAVER/i,              // 네이버 인앱 브라우저
+    /KAKAOTALK/i,          // 카카오톡 인앱 브라우저
   ];
 
   return webViewPatterns.some(pattern => pattern.test(userAgent));
@@ -49,23 +54,25 @@ export const openExternalBrowser = (targetUrl: string) => {
 
   const userAgent = navigator.userAgent;
   const isAndroid = /Android/i.test(userAgent);
-  
-  // 크롬 브라우저 자체인지 확인 (크롬인데 오감지된 경우 대비)
-  const isChrome = /Chrome/i.test(userAgent) && !/wv/i.test(userAgent);
 
-  if (isAndroid && !isChrome) {
-    // Android: Chrome으로 강제 오픈 (Intent Scheme)
-    // S.browser_fallback_url은 크롬이 없을 경우 대비
+  // 정상 크롬 (갤럭시 크롬 포함): '; wv)' 마커 없으면 실제 크롬
+  const isRealChrome = /Chrome\//i.test(userAgent) && !/; wv\)/i.test(userAgent);
+  // 삼성 인터넷 브라우저
+  const isSamsungBrowser = /SamsungBrowser\//i.test(userAgent);
+
+  if (isAndroid && !isRealChrome && !isSamsungBrowser) {
+    // 진짜 인앱브라우저(카카오, 네이버 등): Chrome Intent 스킴으로 강제 오픈
     const urlWithoutProtocol = targetUrl.replace(/^https?:\/\//, '');
     const intentUrl = `intent://${urlWithoutProtocol}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(targetUrl)};end`;
 
     try {
       window.location.href = intentUrl;
     } catch (e) {
+      // intent:// 가 지원되지 않는 경우 일반 URL로 fallback
       window.location.href = targetUrl;
     }
   } else {
-    // iOS 및 기타 또는 이미 크롬인 경우: 새 창 열기 시도
+    // 실제 크롬, 삼성 인터넷, iOS Safari 등 정상 브라우저: 그냥 현재 창에서 열기
     window.location.href = targetUrl;
   }
 };
