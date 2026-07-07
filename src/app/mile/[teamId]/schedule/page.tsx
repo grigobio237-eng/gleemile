@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, serverTimestamp, where } from 'firebase/firestore';
-import { Calendar, ArrowLeft, Plus, Loader2, MapPin, Clock } from 'lucide-react';
+import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { Calendar, ArrowLeft, Plus, Loader2, MapPin, Clock, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import type { SchedulePost } from '@/types/schedule';
@@ -63,6 +63,16 @@ export default function SchedulePage() {
 
     return () => unsubscribe();
   }, [teamId, session]);
+
+  const handleDelete = async (scheduleId: string) => {
+    if (!window.confirm('정말 이 일정을 삭제하시겠습니까?')) return;
+    try {
+      await deleteDoc(doc(db, `teams/${teamId}/schedules`, scheduleId));
+    } catch (error) {
+      console.error('Failed to delete schedule', error);
+      alert('일정 삭제에 실패했습니다.');
+    }
+  };
 
   if (loading) {
     return (
@@ -126,7 +136,24 @@ export default function SchedulePage() {
                         <span className={`text-sm font-black ${isPast ? 'text-slate-400' : 'text-indigo-600'}`}>
                           {dateString}
                         </span>
-                        {isPast && <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">완료됨</span>}
+                        <div className="flex items-center gap-2">
+                          {isPast && <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">완료됨</span>}
+                          {canWrite && (
+                            <>
+                              <Link href={`/mile/${teamId}/schedule/new?editId=${item.id}`}>
+                                <button className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors" title="수정">
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                              </Link>
+                              <button 
+                                onClick={() => handleDelete(item.id!)}
+                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors" title="삭제"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                       <h3 className={`font-bold text-lg ${isPast ? 'text-slate-500' : 'text-obsidian'}`}>{item.title}</h3>
                       <div className="flex flex-col gap-1.5 mt-2">

@@ -12,7 +12,7 @@ export function InAppBrowserGuard() {
     setIsMounted(true);
     
     if (isWebView()) {
-      const userAgent = window.navigator.userAgent.toLowerCase();
+      const userAgent = (window.navigator?.userAgent || '').toLowerCase();
       const isAndroid = /android/i.test(userAgent);
       const isIos = /iphone|ipad|ipod/i.test(userAgent);
 

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 
 import { db, storage } from '@/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot, addDoc, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, addDoc, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { ChatMessage, chatBlockConverter, generateChatMediaStoragePath } from '@/types/chat';
 
@@ -28,23 +28,40 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [unreadThreshold, setUnreadThreshold] = useState<number | null>(null);
+
   // ==========================================
   // 0. 메타데이터 갱신 (Mount & Unmount 시점에만 기록 - 쓰기 비용 최적화)
   // ==========================================
   useEffect(() => {
     if (!teamId || !currentUserId) return;
     
-    const updateLastRead = () => {
+    const initAndMarkRead = async () => {
       const metadataRef = doc(db, `teams/${teamId}/memberMeta`, currentUserId);
-      setDoc(metadataRef, { lastReadChatAt: serverTimestamp() }, { merge: true }).catch(console.error);
+      
+      try {
+        // 기존 읽은 시간 가져오기
+        const metaSnap = await getDoc(metadataRef);
+        if (metaSnap.exists()) {
+          const data = metaSnap.data();
+          if (data.lastReadChatAt) {
+            setUnreadThreshold(data.lastReadChatAt.toMillis());
+          }
+        }
+        
+        // 가져온 직후 현재 시간으로 업데이트
+        setDoc(metadataRef, { lastReadChatAt: serverTimestamp() }, { merge: true }).catch(console.error);
+      } catch (e) {
+        console.error("Failed to read/update chat metadata:", e);
+      }
     };
 
-    // Mount 시점 갱신
-    updateLastRead();
+    initAndMarkRead();
 
     // Unmount 시점 갱신 (채팅방 이탈 시)
     return () => {
-      updateLastRead();
+      const metadataRef = doc(db, `teams/${teamId}/memberMeta`, currentUserId);
+      setDoc(metadataRef, { lastReadChatAt: serverTimestamp() }, { merge: true }).catch(console.error);
     };
   }, [teamId, currentUserId]);
 
@@ -215,13 +232,28 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
           </div>
         )}
         
-        {messages.map((msg) => {
+        {messages.map((msg, index) => {
           const isMe = msg.senderId === currentUserId;
           const senderName = isMe ? '나' : (msg.senderId || '알 수 없음');
           const isImageAttachment = msg.attachmentUrl && msg.content === '사진을 보냈습니다.';
+          
+          const prevMsg = index > 0 ? messages[index - 1] : null;
+          let showDivider = false;
+          
+          if (unreadThreshold && msg.createdAt > unreadThreshold && (!prevMsg || prevMsg.createdAt <= unreadThreshold)) {
+            showDivider = true;
+          }
 
           return (
-            <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+            <React.Fragment key={msg.id}>
+              {showDivider && (
+                <div className="flex items-center justify-center my-4 animate-in fade-in duration-500 w-full">
+                  <div className="bg-slate-200/60 text-slate-500 text-[11px] font-bold px-4 py-1.5 rounded-full shadow-sm backdrop-blur-sm tracking-tight border border-slate-200/80">
+                    여기까지 읽으셨습니다.
+                  </div>
+                </div>
+              )}
+              <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
               {/* 발신자 정보 & 뱃지 */}
               {!isMe && (
                 <div className="flex items-center gap-1.5 mb-1 pl-1">
@@ -268,6 +300,7 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
                 </span>
               </div>
             </div>
+            </React.Fragment>
           );
         })}
       </div>

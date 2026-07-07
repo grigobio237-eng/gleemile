@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { MessageSquare, ArrowLeft, Send, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -16,9 +16,28 @@ export default function NewCommunityPostPage() {
   const params = useParams();
   const teamId = params?.teamId as string;
 
+  const searchParams = useSearchParams();
+  const editId = searchParams?.get('editId');
+
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(!!editId);
+
+  useEffect(() => {
+    if (!editId || !teamId) return;
+    const fetchPost = async () => {
+      const docRef = doc(db, `teams/${teamId}/community_posts`, editId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setTitle(data.title || '');
+        setContent(data.content || '');
+      }
+      setLoading(false);
+    };
+    fetchPost();
+  }, [editId, teamId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,18 +45,26 @@ export default function NewCommunityPostPage() {
     
     setSubmitting(true);
     try {
-      await addDoc(collection(db, `teams/${teamId}/community_posts`), {
-        title,
-        content,
-        authorId: session.user.id,
-        authorName: session.user.name || '알 수 없음',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
+      if (editId) {
+        await updateDoc(doc(db, `teams/${teamId}/community_posts`, editId), {
+          title,
+          content,
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        await addDoc(collection(db, `teams/${teamId}/community_posts`), {
+          title,
+          content,
+          authorId: session.user.id,
+          authorName: session.user.name || '알 수 없음',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
       router.push(`/mile/${teamId}/community`);
     } catch (error) {
-      console.error('Failed to create post', error);
-      alert('게시글 등록에 실패했습니다.');
+      console.error('Failed to save post', error);
+      alert('게시글 저장에 실패했습니다.');
       setSubmitting(false);
     }
   };
@@ -53,12 +80,17 @@ export default function NewCommunityPostPage() {
               <ArrowLeft className="w-4 h-4" /> 커뮤니티 목록
             </Link>
             <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-              새 글 작성
+              {editId ? '게시글 수정' : '새 글 작성'}
             </h1>
           </div>
         </div>
 
         {/* Form */}
+        {loading ? (
+          <div className="flex justify-center py-20 bg-white rounded-3xl border border-slate-100">
+            <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 space-y-6">
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">제목</label>
@@ -94,12 +126,13 @@ export default function NewCommunityPostPage() {
                 </>
               ) : (
                 <>
-                  <Send className="w-5 h-5" /> 등록하기
+                  <Send className="w-5 h-5" /> {editId ? '수정하기' : '등록하기'}
                 </>
               )}
             </Button>
           </div>
         </form>
+        )}
 
       </div>
     </div>

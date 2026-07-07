@@ -81,12 +81,6 @@ function DashboardContent() {
           } else if (data.ownerId === session.user.id) {
             fetchedRole = 'owner';
           }
-          
-          if (fetchedRole === 'owner' || fetchedRole === 'manager') {
-            const reqQ = query(collection(db, `teams/${teamId}/join_requests`), where('status', '==', 'pending'));
-            const reqSnap = await getDocs(reqQ);
-            setPendingRequests(reqSnap.size);
-          }
         }
         setUserRole(fetchedRole);
       } else {
@@ -116,6 +110,15 @@ function DashboardContent() {
     let unsubCommunity: () => void;
     let unsubSchedule: () => void;
     let unsubPlayers: () => void;
+    let unsubJoinRequests: () => void;
+
+    // 관리자(owner/manager)인 경우 실시간 가입 신청 대기 건수 구독
+    if (isManagerOrHigher(normalizeRole(userRole))) {
+      const qJoinReq = query(collection(db, `teams/${teamId}/join_requests`), where('status', '==', 'pending'));
+      unsubJoinRequests = onSnapshot(qJoinReq, (snap) => {
+        setPendingRequests(snap.size);
+      });
+    }
     
     const unsubMeta = onSnapshot(doc(db, `users/${session.user.id}/team_metadata`, teamId), (metaSnap) => {
       const lastReadAnn = metaSnap.exists() ? metaSnap.data().lastReadAnnouncementAt : null;
@@ -281,11 +284,15 @@ function DashboardContent() {
         if (unsubLineupCurrent) unsubLineupCurrent();
         if (unsubKanbanMeta) unsubKanbanMeta();
         if (unsubKanbanTasks) unsubKanbanTasks();
+        if (unsubJoinRequests) unsubJoinRequests();
       };
     });
     
-    return () => unsubMeta();
-  }, [teamId, session?.user?.id]);
+    return () => {
+      unsubMeta();
+      if (unsubJoinRequests) unsubJoinRequests();
+    };
+  }, [teamId, session?.user?.id, userRole]);
 
   if (loading || status === 'loading') {
     return (

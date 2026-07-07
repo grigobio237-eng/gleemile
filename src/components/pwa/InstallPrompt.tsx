@@ -11,26 +11,32 @@ export function InstallPrompt() {
   const [isStandalone, setIsStandalone] = useState(true);
 
   useEffect(() => {
-    const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || 
-                             (window.navigator as any).standalone === true;
+    const matchMediaResult = window.matchMedia ? window.matchMedia('(display-mode: standalone)') : null;
+    const isStandaloneMode = (matchMediaResult && matchMediaResult.matches) || 
+                             (window.navigator as any)?.standalone === true;
     setIsStandalone(isStandaloneMode);
 
     if (isStandaloneMode) return;
 
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIos = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroid = /android/.test(userAgent);
     
     if (isIos) {
-      const hasDismissed = localStorage.getItem('ios_pwa_prompt_dismissed');
+      let hasDismissed = false;
+      try { hasDismissed = localStorage.getItem('ios_pwa_prompt_dismissed') === 'true'; } catch(e) {}
       if (!hasDismissed) {
         setShowIosPrompt(true);
       }
+    } else if (isAndroid) {
+      // Android는 beforeinstallprompt 이벤트를 기다립니다.
     }
 
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      const hasDismissed = localStorage.getItem('android_pwa_prompt_dismissed');
+      let hasDismissed = false;
+      try { hasDismissed = localStorage.getItem('android_pwa_prompt_dismissed') === 'true'; } catch(err) {}
       if (!hasDismissed) {
         setShowAndroidPrompt(true);
       }
@@ -64,12 +70,12 @@ export function InstallPrompt() {
 
   const dismissAndroid = () => {
     setShowAndroidPrompt(false);
-    localStorage.setItem('android_pwa_prompt_dismissed', 'true');
+    try { localStorage.setItem('android_pwa_prompt_dismissed', 'true'); } catch(e) {}
   };
 
   const dismissIos = () => {
+    try { localStorage.setItem('ios_pwa_prompt_dismissed', 'true'); } catch(e) {}
     setShowIosPrompt(false);
-    localStorage.setItem('ios_pwa_prompt_dismissed', 'true');
   };
 
   if (isStandalone) return null;

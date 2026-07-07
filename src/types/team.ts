@@ -13,6 +13,7 @@ export type TeamRole = 'owner' | 'manager' | 'member' | 'guest'; // 방장 | 임
 export interface TeamDocument {
   id?: string;
   name: string;
+  description?: string; // 클럽 한줄 소개
   inviteCode: string; // 6자리 난수 영문+숫자 혼합
   createdAt: number;
 }

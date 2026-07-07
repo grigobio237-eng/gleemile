@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, addDoc, serverTimestamp, increment, deleteDoc } from 'firebase/firestore';
-import { X, Heart, MessageCircle, Send, Loader2, Trash2 } from 'lucide-react';
+import { X, Heart, MessageCircle, Send, Loader2, Trash2, Pencil } from 'lucide-react';
 import type { CommunityPost, CommunityComment } from '@/types/community';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 interface ModalProps {
   post: CommunityPost;
@@ -115,6 +116,19 @@ export function CommunityPostModal({ post, teamId, currentUserId, currentUserNam
     }
   };
 
+  const handleDeletePost = async () => {
+    if (!post.id) return;
+    if (!window.confirm('게시글을 정말 삭제하시겠습니까? (댓글도 함께 삭제됩니다)')) return;
+    
+    try {
+      await deleteDoc(doc(db, `teams/${teamId}/community_posts`, post.id));
+      onClose();
+    } catch (error) {
+      console.error('Failed to delete post', error);
+      alert('게시글 삭제에 실패했습니다.');
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl w-full max-w-2xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
@@ -129,12 +143,30 @@ export function CommunityPostModal({ post, teamId, currentUserId, currentUserNam
               <span>{post.createdAt?.toDate ? post.createdAt.toDate().toLocaleDateString('ko-KR') : '방금 전'}</span>
             </div>
           </div>
-          <button 
-            onClick={onClose} 
-            className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-500 shrink-0 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          
+          <div className="flex items-center gap-2">
+            {currentUserId === post.authorId && (
+              <>
+                <Link href={`/mile/${teamId}/community/new?editId=${post.id}`}>
+                  <button className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors px-2 py-1.5 rounded-md hover:bg-indigo-50">
+                    <Pencil className="w-3.5 h-3.5" /> 수정
+                  </button>
+                </Link>
+                <button 
+                  onClick={handleDeletePost}
+                  className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-rose-600 transition-colors px-2 py-1.5 rounded-md hover:bg-rose-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> 삭제
+                </button>
+              </>
+            )}
+            <button 
+              onClick={onClose} 
+              className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-500 shrink-0 transition-colors ml-2"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
         
         {/* Post Content */}

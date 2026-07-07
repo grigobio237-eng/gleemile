@@ -10,7 +10,7 @@
 export const isWebView = (): boolean => {
   if (typeof window === 'undefined') return false;
 
-  const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+  const userAgent = window.navigator?.userAgent || window.navigator?.vendor || (window as any).opera || '';
 
   // 1. 실제 브라우저 Safe Guard: 먼저 정상 브라우저를 걸러냅니다.
   // Android WebView는 '; wv)' 마커가 있거나, Chrome이 없거나, SamsungBrowser가 없습니다.

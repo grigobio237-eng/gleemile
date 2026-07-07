@@ -13,11 +13,12 @@ export function MarketingLandingPage() {
 
   useEffect(() => {
     // SSR Safe User Agent Detection
-    const ua = window.navigator.userAgent.toLowerCase();
+    const ua = (window.navigator?.userAgent || '').toLowerCase();
     const isIos = /iphone|ipad|ipod/.test(ua);
     const isAndroid = /android/.test(ua);
     // Very simple standalone check
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+    const m = window.matchMedia ? window.matchMedia('(display-mode: standalone)') : null;
+    const isStandalone = (m && m.matches) || (window.navigator as any)?.standalone === true;
 
     if (!isStandalone) {
       if (isIos) setInstallGuideType('ios');

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Zap, KeyRound, Plus, ArrowRight, Search, Users, LayoutGrid } from 'lucide-react';
+import { Shield, KeyRound, Plus, ArrowRight, Search, Users, LayoutGrid, Loader2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { doc, collection, onSnapshot, query, where, limit } from 'firebase/firestore';
+import { doc, collection, onSnapshot, query, where, limit, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { JoinRequestModal } from './JoinRequestModal';
 
 function TeamUnreadBadge({ teamId, userId }: { teamId: string, userId: string }) {
   const [totalUnread, setTotalUnread] = useState(0);
@@ -48,8 +49,8 @@ function TeamUnreadBadge({ teamId, userId }: { teamId: string, userId: string })
       const data = metaSnap.exists() ? metaSnap.data() : {};
 
       // Chat
-      let qChat = collection(db, `teams/${teamId}/messages`);
-      if (data.lastReadChatAt) qChat = query(qChat, where('createdAt', '>', data.lastReadChatAt)) as any;
+      let qChat = query(collection(db, `teams/${teamId}/messages`), limit(100));
+      if (data.lastReadChatAt) qChat = query(collection(db, `teams/${teamId}/messages`), where('createdAt', '>', data.lastReadChatAt), limit(100)) as any;
       unsubs.push(onSnapshot(qChat, (snap) => { counts.chat = snap.size; checkTotal(); }));
 
       // Lineup
@@ -127,6 +128,9 @@ interface GuestLoungeProps {
 export function GuestLounge({ onCreateTeamClick, onJoinWithCode, status, userId, myTeams = [], publicTeams = [] }: GuestLoungeProps) {
   const [inviteCode, setInviteCode] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  // 가입 신청 버튼 상태: 'idle' | 'loading' | 'done' | 'already'
+  const [joinStatus, setJoinStatus] = useState<Record<string, 'idle' | 'loading' | 'done' | 'already'>>({});
+  const [selectedTeamIdForJoin, setSelectedTeamIdForJoin] = useState<string | null>(null);
 
   const handleJoinClick = () => {
     if (inviteCode.trim().length > 0) {
@@ -134,7 +138,38 @@ export function GuestLounge({ onCreateTeamClick, onJoinWithCode, status, userId,
     }
   };
 
-  const filteredPublicTeams = publicTeams.filter(team => 
+  // 가입 신청 버튼 클릭 시 모달 열기
+  const handleJoinRequest = async (teamId: string) => {
+    if (!userId) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    
+    // 이미 신청/완료 상태면 무시
+    if (joinStatus[teamId] === 'done' || joinStatus[teamId] === 'already' || joinStatus[teamId] === 'loading') return;
+    
+    // 이미 DB에 기록이 있는지 체크 (모달 열기 전)
+    setJoinStatus(prev => ({ ...prev, [teamId]: 'loading' }));
+    try {
+      const requestRef = doc(db, `teams/${teamId}/join_requests`, userId);
+      const existing = await getDoc(requestRef);
+      if (existing.exists()) {
+        setJoinStatus(prev => ({ ...prev, [teamId]: 'already' }));
+        return;
+      }
+      setJoinStatus(prev => ({ ...prev, [teamId]: 'idle' }));
+      setSelectedTeamIdForJoin(teamId);
+    } catch (err) {
+      console.error(err);
+      setJoinStatus(prev => ({ ...prev, [teamId]: 'idle' }));
+    }
+  };
+
+  // 내가 이미 소속된 팀 ID 목록 (상단 '내가 소속된 클럽'에 이미 표시되므로 탐색 목록에서 제외)
+  const myTeamIds = new Set(myTeams.map(t => t.id));
+
+  const filteredPublicTeams = publicTeams.filter(team =>
+    !myTeamIds.has(team.id) &&
     team.teamName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -278,21 +313,72 @@ export function GuestLounge({ onCreateTeamClick, onJoinWithCode, status, userId,
           </div>
 
           {/* 추천 목록 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-3">
             {filteredPublicTeams.length > 0 ? (
-              filteredPublicTeams.map(team => (
-                <div key={team.id} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex items-center justify-between">
-                  <div className="space-y-1 text-left">
-                    <h3 className="font-bold text-slate-800 text-base">{team.teamName}</h3>
-                    <p className="text-xs text-slate-500 flex items-center gap-1">
-                      <Users className="w-3 h-3" /> 멤버 {team.memberCount || 1}명
-                    </p>
+              filteredPublicTeams.map(team => {
+                const isEmoji = team.teamIcon && team.teamIcon.length <= 4;
+                const iconContent = team.teamIcon ? (
+                  isEmoji
+                    ? <span className="text-2xl">{team.teamIcon}</span>
+                    : <img src={team.teamIcon} alt={team.teamName} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-xl font-black text-emerald-600">{team.teamName?.charAt(0)}</span>
+                );
+
+                return (
+                  <div key={team.id} className="bg-white rounded-2xl px-4 py-3.5 shadow-sm border border-slate-100 flex items-center gap-3 hover:shadow-md transition-shadow">
+                    {/* 좌측: 클럽 아이콘 + 클럽명 */}
+                    <div className="flex flex-col items-center gap-1.5 shrink-0 w-[60px]">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden shadow-sm">
+                        {iconContent}
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-700 text-center w-full truncate leading-tight">
+                        {team.teamName}
+                      </p>
+                    </div>
+
+                    {/* 중간: 소개글 + 멤버 수 */}
+                    <div className="flex-1 min-w-0 space-y-0.5 text-left">
+                      <p className="text-xs text-slate-600 truncate leading-relaxed">
+                        {team.description || '소개글이 없습니다.'}
+                      </p>
+                      <p className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                        <Users className="w-3 h-3" /> 멤버 {team.memberCount || 1}명
+                      </p>
+                    </div>
+
+                    {/* 우측: 가입 신청 버튼 */}
+                    {(() => {
+                      const s = joinStatus[team.id] || 'idle';
+                      if (s === 'done') return (
+                        <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold shrink-0 px-1">
+                          <CheckCircle2 className="w-4 h-4" /> 신청 완료
+                        </div>
+                      );
+                      if (s === 'already') return (
+                        <div className="flex items-center gap-1 text-slate-400 text-xs font-bold shrink-0 px-1">
+                          <CheckCircle2 className="w-4 h-4" /> 신청됨
+                        </div>
+                      );
+                      return (
+                        <Button
+                          variant="outline"
+                          disabled={s === 'loading'}
+                          onClick={() => handleJoinRequest(team.id)}
+                          className="rounded-xl h-8 px-3 text-xs font-bold shrink-0 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400 transition-colors disabled:opacity-60"
+                        >
+                          {s === 'loading'
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : '가입 신청'
+                          }
+                        </Button>
+                      );
+                    })()}
                   </div>
-                  <Button variant="outline" className="rounded-xl h-8 text-xs font-bold shrink-0">가입 신청</Button>
-                </div>
-              ))
+                );
+              })
             ) : (
-              <div className="col-span-full py-12 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+              <div className="py-12 text-center bg-white rounded-2xl border border-dashed border-slate-200">
                 <p className="text-slate-500 text-sm font-medium">검색 결과가 없습니다.</p>
               </div>
             )}
@@ -309,6 +395,13 @@ export function GuestLounge({ onCreateTeamClick, onJoinWithCode, status, userId,
         </div>
       </div>
       
+      <JoinRequestModal 
+        isOpen={!!selectedTeamIdForJoin}
+        onClose={() => setSelectedTeamIdForJoin(null)}
+        teamId={selectedTeamIdForJoin}
+        userId={userId}
+        onSuccess={(tid) => setJoinStatus(prev => ({ ...prev, [tid]: 'done' }))}
+      />
     </div>
   );
 }

@@ -75,6 +75,7 @@ export default function TeamSetupPage() {
 
   const [loading, setLoading] = useState(true);
   const [teamName, setTeamName] = useState('새로운 팀');
+  const [teamDescription, setTeamDescription] = useState('');
   const [teamTemplate, setTeamTemplate] = useState('common');
   const [teamIcon, setTeamIcon] = useState<string>('');
   const [selectedModules, setSelectedModules] = useState<Record<string, boolean>>({});
@@ -111,6 +112,7 @@ export default function TeamSetupPage() {
       if (teamSnap.exists()) {
         const data = teamSnap.data();
         setTeamName(data.teamName || '새로운 팀');
+        setTeamDescription(data.description || '');
         setTeamIcon(data.teamIcon || '');
         
         const ownerId = data.ownerId || '';
@@ -202,6 +204,7 @@ export default function TeamSetupPage() {
       const teamRef = doc(db, 'teams', teamId);
       await updateDoc(teamRef, {
         enabledModules: enabled,
+        description: teamDescription,
         teamIcon: teamIcon,
         updatedAt: new Date()
       });
@@ -354,6 +357,31 @@ export default function TeamSetupPage() {
               )}
             </div>
             <p className="text-xs text-slate-400 mt-2 font-bold uppercase tracking-widest">Preview</p>
+          </div>
+        </section>
+
+        {/* Team Description Setup */}
+        <section className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 pb-12">
+          <div className="flex items-center gap-3 mb-4">
+            <div>
+              <h2 className="text-lg font-black text-slate-800">클럽 한줄 소개 설정</h2>
+              <p className="text-xs text-slate-500 font-medium mt-1">클럽의 정체성을 한 문장으로 표현해보세요.</p>
+            </div>
+          </div>
+          
+          <div className="border-t border-slate-100 pt-4">
+            <label className="text-xs font-bold text-slate-500 mb-1.5 flex justify-between">
+              <span>한줄 소개 입력</span>
+              <span className="text-slate-400 font-normal">{teamDescription.length}/60</span>
+            </label>
+            <input
+              type="text"
+              placeholder="예: 매주 토요일 오전에 달리는 모임입니다."
+              maxLength={60}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              value={teamDescription}
+              onChange={(e) => setTeamDescription(e.target.value)}
+            />
           </div>
         </section>
 

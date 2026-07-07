@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Megaphone, ArrowLeft, Send, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -17,10 +17,30 @@ export default function NewAnnouncementPage() {
   const params = useParams();
   const teamId = params?.teamId as string;
 
+  const searchParams = useSearchParams();
+  const editId = searchParams?.get('editId');
+
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isImportant, setIsImportant] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(!!editId);
+
+  useEffect(() => {
+    if (!editId || !teamId) return;
+    const fetchAnnouncement = async () => {
+      const docRef = doc(db, `teams/${teamId}/announcements`, editId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setTitle(data.title || '');
+        setContent(data.content || '');
+        setIsImportant(data.isImportant || false);
+      }
+      setLoading(false);
+    };
+    fetchAnnouncement();
+  }, [editId, teamId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,18 +48,27 @@ export default function NewAnnouncementPage() {
     
     setSubmitting(true);
     try {
-      await addDoc(collection(db, `teams/${teamId}/announcements`), {
-        title,
-        content,
-        isImportant,
-        authorId: session.user.id,
-        authorName: session.user.name || '관리자',
-        createdAt: serverTimestamp()
-      });
+      if (editId) {
+        await updateDoc(doc(db, `teams/${teamId}/announcements`, editId), {
+          title,
+          content,
+          isImportant,
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        await addDoc(collection(db, `teams/${teamId}/announcements`), {
+          title,
+          content,
+          isImportant,
+          authorId: session.user.id,
+          authorName: session.user.name || '관리자',
+          createdAt: serverTimestamp()
+        });
+      }
       router.push(`/mile/${teamId}/announcements`);
     } catch (error) {
-      console.error('Failed to create announcement', error);
-      alert('공지사항 등록에 실패했습니다.');
+      console.error('Failed to save announcement', error);
+      alert('공지사항 저장에 실패했습니다.');
       setSubmitting(false);
     }
   };
@@ -55,12 +84,17 @@ export default function NewAnnouncementPage() {
               <ArrowLeft className="w-4 h-4" /> 공지사항 목록
             </Link>
             <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-              새 공지 작성
+              {editId ? '공지사항 수정' : '새 공지 작성'}
             </h1>
           </div>
         </div>
 
         {/* Form */}
+        {loading ? (
+          <div className="flex justify-center py-20 bg-white rounded-3xl border border-slate-100">
+            <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-bold text-slate-700">제목</label>
@@ -104,11 +138,12 @@ export default function NewAnnouncementPage() {
               {submitting ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> 등록 중...</>
               ) : (
-                <><Send className="w-4 h-4 mr-2" /> 공지사항 등록하기</>
+                <><Send className="w-4 h-4 mr-2" /> {editId ? '공지사항 수정하기' : '공지사항 등록하기'}</>
               )}
             </Button>
           </div>
         </form>
+        )}
 
       </div>
     </div>

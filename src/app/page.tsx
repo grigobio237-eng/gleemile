@@ -23,6 +23,7 @@ export default function RootHubPage() {
   // 모임 개설 모달 상태
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
+  const [newTeamDescription, setNewTeamDescription] = useState('');
   const [newTemplateType, setNewTemplateType] = useState('sports');
   const [newIsPublic, setNewIsPublic] = useState(true);
   const [creationLoading, setCreationLoading] = useState(false);
@@ -37,7 +38,7 @@ export default function RootHubPage() {
       if (status === 'authenticated' && session?.user?.id) {
         try {
           // [온보딩 인터셉터: 초대 링크 가입]
-          const inviteTeamId = sessionStorage.getItem('gleemile_invite_code');
+          const inviteTeamId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('gleemile_invite_code') : null;
           if (inviteTeamId) {
             // Firestore에 멤버 바인딩 (merge: true를 통해 무결성 보장)
             const memberRef = doc(db, 'teams', inviteTeamId, 'members', session.user.id);
@@ -97,6 +98,7 @@ export default function RootHubPage() {
       // 1. Create team document
       const teamData = {
         teamName: newTeamName,
+        description: newTeamDescription,
         templateType: newTemplateType,
         isPublic: newIsPublic,
         createdAt: serverTimestamp(),
@@ -126,6 +128,7 @@ export default function RootHubPage() {
 
       setCreateModalOpen(false);
       setNewTeamName('');
+      setNewTeamDescription('');
       
       // Redirect to the new team's setup wizard
       router.push(`/mile/${teamId}/setup`);
@@ -196,6 +199,21 @@ export default function RootHubPage() {
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                   value={newTeamName}
                   onChange={(e) => setNewTeamName(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-500 mb-1.5 flex justify-between">
+                  <span>클럽 한줄 소개</span>
+                  <span className="text-slate-400 font-normal">{newTeamDescription.length}/60</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="모임에 대한 짧은 소개를 적어주세요 (최대 60자)"
+                  maxLength={60}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  value={newTeamDescription}
+                  onChange={(e) => setNewTeamDescription(e.target.value)}
                 />
               </div>
               

@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { Megaphone, ArrowLeft, Plus, Loader2, X } from 'lucide-react';
+import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { Megaphone, ArrowLeft, Plus, Loader2, X, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import type { Announcement } from '@/types/announcement';
@@ -61,6 +61,17 @@ export default function AnnouncementsPage() {
 
     return () => unsubscribe();
   }, [teamId, session?.user?.id]);
+
+  const handleDelete = async (announcementId: string) => {
+    if (!window.confirm('정말 삭제하시겠습니까?')) return;
+    try {
+      await deleteDoc(doc(db, `teams/${teamId}/announcements`, announcementId));
+      setSelectedAnnouncement(null);
+    } catch (error) {
+      console.error('Failed to delete', error);
+      alert('삭제에 실패했습니다.');
+    }
+  };
 
   const canWrite = isManagerOrHigher(normalizeRole(userRole));
 
@@ -159,12 +170,30 @@ export default function AnnouncementsPage() {
             </div>
             
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center shrink-0">
-              <span className="text-xs font-bold text-slate-400">
-                작성자: {selectedAnnouncement.authorName}
-              </span>
-              <span className="text-xs font-bold text-slate-400">
-                {selectedAnnouncement.createdAt?.toDate ? selectedAnnouncement.createdAt.toDate().toLocaleDateString('ko-KR') : '방금 전'}
-              </span>
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-bold text-slate-400">
+                  작성자: {selectedAnnouncement.authorName}
+                </span>
+                <span className="text-xs font-bold text-slate-400">
+                  {selectedAnnouncement.createdAt?.toDate ? selectedAnnouncement.createdAt.toDate().toLocaleDateString('ko-KR') : '방금 전'}
+                </span>
+              </div>
+              
+              {(session?.user?.id === selectedAnnouncement.authorId || userRole === 'owner') && (
+                <div className="flex items-center gap-2">
+                  <Link href={`/mile/${teamId}/announcements/new?editId=${selectedAnnouncement.id}`}>
+                    <button className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors px-2 py-1 rounded-md hover:bg-indigo-50">
+                      <Pencil className="w-3.5 h-3.5" /> 수정
+                    </button>
+                  </Link>
+                  <button 
+                    onClick={() => handleDelete(selectedAnnouncement.id!)}
+                    className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-rose-600 transition-colors px-2 py-1 rounded-md hover:bg-rose-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> 삭제
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

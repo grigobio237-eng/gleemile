@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { Calendar, ArrowLeft, Send, Loader2, MapPin, Clock, AlignLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,9 @@ export default function NewSchedulePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const teamId = params?.teamId as string;
+  const editId = searchParams?.get('editId');
 
   const [loadingRole, setLoadingRole] = useState(true);
   
@@ -25,6 +27,40 @@ export default function NewSchedulePage() {
   const [locationStr, setLocationStr] = useState('');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(!!editId);
+
+  useEffect(() => {
+    if (!editId || !teamId) return;
+    const fetchSchedule = async () => {
+      try {
+        const docRef = doc(db, `teams/${teamId}/schedules`, editId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setTitle(data.title || '');
+          setLocationStr(data.location || '');
+          setDescription(data.description || '');
+          if (data.dateTime) {
+            const dateObj = data.dateTime.toDate();
+            // date formatter
+            const yyyy = dateObj.getFullYear();
+            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const dd = String(dateObj.getDate()).padStart(2, '0');
+            setDate(`${yyyy}-${mm}-${dd}`);
+            // time formatter
+            const hh = String(dateObj.getHours()).padStart(2, '0');
+            const min = String(dateObj.getMinutes()).padStart(2, '0');
+            setTime(`${hh}:${min}`);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoadingEdit(false);
+      }
+    };
+    fetchSchedule();
+  }, [editId, teamId]);
 
   useEffect(() => {
     if (!teamId || status === 'loading') return;
@@ -70,18 +106,29 @@ export default function NewSchedulePage() {
     setSubmitting(true);
     try {
       const dateTime = new Date(`${date}T${time}`);
-      await addDoc(collection(db, `teams/${teamId}/schedules`), {
-        title,
-        dateTime: Timestamp.fromDate(dateTime),
-        location: locationStr,
-        description,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
+      
+      if (editId) {
+        await updateDoc(doc(db, `teams/${teamId}/schedules`, editId), {
+          title,
+          dateTime: Timestamp.fromDate(dateTime),
+          location: locationStr,
+          description,
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        await addDoc(collection(db, `teams/${teamId}/schedules`), {
+          title,
+          dateTime: Timestamp.fromDate(dateTime),
+          location: locationStr,
+          description,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
       router.push(`/mile/${teamId}/schedule`);
     } catch (error) {
-      console.error('Failed to create schedule', error);
-      alert('일정 등록에 실패했습니다.');
+      console.error('Failed to save schedule', error);
+      alert('일정 저장에 실패했습니다.');
       setSubmitting(false);
     }
   };
@@ -105,12 +152,17 @@ export default function NewSchedulePage() {
               <ArrowLeft className="w-4 h-4" /> 일정 목록
             </Link>
             <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-              새 일정 등록
+              {editId ? '일정 수정' : '새 일정 등록'}
             </h1>
           </div>
         </div>
 
         {/* Form */}
+        {loadingEdit ? (
+          <div className="flex justify-center py-20 bg-white rounded-3xl border border-slate-100">
+            <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 space-y-6">
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">일정 제목</label>
@@ -178,12 +230,13 @@ export default function NewSchedulePage() {
                 </>
               ) : (
                 <>
-                  <Send className="w-5 h-5" /> 등록하기
+                  <Send className="w-5 h-5" /> {editId ? '수정하기' : '등록하기'}
                 </>
               )}
             </Button>
           </div>
         </form>
+        )}
 
       </div>
     </div>
