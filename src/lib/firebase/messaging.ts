@@ -46,3 +46,18 @@ export async function requestFCMToken(): Promise<string | null> {
     return null;
   }
 }
+
+export async function removeFCMToken(userId: string, token: string): Promise<void> {
+  if (!userId || !token) return;
+  try {
+    const { doc, updateDoc, arrayRemove } = await import('firebase/firestore');
+    const { db } = await import('../firebase');
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      fcmTokens: arrayRemove(token)
+    });
+    console.log('FCM token removed successfully.');
+  } catch (error) {
+    console.error('Failed to remove FCM token:', error);
+  }
+}

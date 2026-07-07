@@ -10,6 +10,7 @@ import { collection, query, orderBy, limit, onSnapshot, addDoc, doc, setDoc, get
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { ChatMessage, chatBlockConverter, generateChatMediaStoragePath } from '@/types/chat';
 import { formatFileSize, getFileIconColorClass } from '@/lib/utils';
+import { useTeamMembers } from '@/providers/TeamMemberProvider';
 
 interface TeamChatRoomProps {
   teamId: string;
@@ -30,24 +31,7 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [unreadThreshold, setUnreadThreshold] = useState<number | null>(null);
-  const [memberMap, setMemberMap] = useState<Record<string, {name: string, profileImage?: string}>>({});
-
-  useEffect(() => {
-    if (!teamId) return;
-    const membersRef = collection(db, `teams/${teamId}/member_summaries`);
-    const unsubscribeMembers = onSnapshot(membersRef, (snapshot) => {
-      const newMap: Record<string, {name: string, profileImage?: string}> = {};
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        newMap[docSnap.id] = {
-          name: data.name || data.nickname || '이름 없음',
-          profileImage: data.profileImage
-        };
-      });
-      setMemberMap(newMap);
-    });
-    return () => unsubscribeMembers();
-  }, [teamId]);
+  const { memberMap } = useTeamMembers();
 
   const getSenderInfo = React.useCallback((senderId: string) => {
     if (senderId === currentUserId) return { name: '나', profileImage: undefined };
@@ -146,12 +130,27 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
         content: text,
       } as any);
 
-      // 서버사이드 알림 트리거 (실제 프로덕션 연동 시 활성화)
-      fetch(`/api/mile/team/${teamId}/notify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'chat', messageId: docRef.id })
-      }).catch(e => console.error("Notify trigger failed:", e));
+      // 서버사이드 알림 트리거 (멘션 감지 로직)
+      // 멤버 맵을 순회하며 메시지에 "@이름" 형태가 있는지 확인
+      const mentionedUserIds: string[] = [];
+      Object.entries(memberMap).forEach(([uid, info]) => {
+        if (uid !== currentUserId && text.includes(`@${info.name}`)) {
+          mentionedUserIds.push(uid);
+        }
+      });
+
+      if (mentionedUserIds.length > 0) {
+        fetch(`/api/notify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: `[글리마일] ${memberMap[currentUserId]?.name || '팀원'}님이 나를 언급했습니다.`,
+            body: text.length > 30 ? text.substring(0, 30) + '...' : text,
+            url: `/mile/${teamId}`,
+            targetUserIds: mentionedUserIds
+          })
+        }).catch(e => console.error("Mention notify trigger failed:", e));
+      }
 
     } catch (err) {
       console.error('Failed to send message', err);

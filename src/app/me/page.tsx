@@ -10,8 +10,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { db } from '@/lib/firebase';
-import { doc, collection, onSnapshot, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, collection, onSnapshot, setDoc, getDoc, deleteDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { GleemileUser } from '@/types/user';
+import { requestFCMToken, removeFCMToken } from '@/lib/firebase/messaging';
 
 export default function MyPage() {
   const { data: session, status } = useSession();
@@ -29,7 +30,7 @@ export default function MyPage() {
   const [recommender, setRecommender] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [privacyMode, setPrivacyMode] = useState(false);
-  const [pushEnabled, setPushEnabled] = useState(true);
+  const [pushEnabled, setPushEnabled] = useState(false);
 
   // Club Management State
   const [squadEditMode, setSquadEditMode] = useState(false);
@@ -51,6 +52,10 @@ export default function MyPage() {
         if (data.gender) setGender(data.gender);
         if (data.ageGroup) setAgeGroup(data.ageGroup);
         if (data.recommender) setRecommender(data.recommender);
+        
+        // FCM 토큰 존재 여부에 따라 스위치 초기화
+        const tokens = (data as any).fcmTokens || [];
+        setPushEnabled(tokens.length > 0);
       }
       setLoading(false);
     }, (error) => {
@@ -110,6 +115,46 @@ export default function MyPage() {
       console.error(e);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handlePushToggle = async (checked: boolean) => {
+    if (!session?.user?.id) return;
+    setPushEnabled(checked);
+    
+    try {
+      if (checked) {
+        const token = await requestFCMToken();
+        if (token) {
+          const userRef = doc(db, 'users', session.user.id);
+          await updateDoc(userRef, { fcmTokens: arrayUnion(token) });
+        } else {
+          setPushEnabled(false);
+        }
+      } else {
+        const token = await requestFCMToken(); // 이미 승인된 상태라 바로 가져옴
+        if (token) {
+          await removeFCMToken(session.user.id, token);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      setPushEnabled(!checked); // 원상복구
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      if (session?.user?.id) {
+        const token = await requestFCMToken();
+        if (token) {
+          await removeFCMToken(session.user.id, token);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      signOut({ callbackUrl: '/' });
     }
   };
 
@@ -405,14 +450,14 @@ export default function MyPage() {
                 </div>
                 <p className="text-[10px] text-slate-500 font-medium">일정 알림 및 FCM 푸시 메시지를 수신합니다.</p>
               </div>
-              <Switch checked={pushEnabled} onCheckedChange={setPushEnabled} />
+              <Switch checked={pushEnabled} onCheckedChange={handlePushToggle} />
             </div>
           </div>
         </div>
 
         {/* Logout Button */}
         <Button 
-          onClick={() => signOut({ callbackUrl: '/' })}
+          onClick={handleSignOut}
           variant="outline"
           className="w-full h-14 bg-transparent hover:bg-rose-50 text-rose-500 border border-slate-200 hover:border-rose-200 rounded-2xl font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2"
         >

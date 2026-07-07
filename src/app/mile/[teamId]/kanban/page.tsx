@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
-import { LayoutDashboard, MoreHorizontal, Plus, Loader2, ArrowLeft, ArrowRight, CheckCircle2, Trash2, ChevronDown, ChevronUp, UserCircle2, Calendar } from 'lucide-react';
+import { Calendar as CalendarIcon, CheckCircle2, Circle, Clock, MoreVertical, Plus, AlertCircle, PlayCircle, Loader2, ArrowLeft, ArrowRight, Trash2, ChevronDown, ChevronUp, UserCircle2, Calendar, LayoutDashboard, MoreHorizontal } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -11,6 +11,7 @@ import { useSession } from 'next-auth/react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, addDoc, updateDoc, doc, serverTimestamp, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
 import { normalizeRole, isManagerOrHigher } from '@/types/role';
+import { useTeamMembers } from '@/providers/TeamMemberProvider';
 
 interface KanbanTask {
   id: string;
@@ -36,7 +37,14 @@ export default function KanbanPage() {
   const { data: session } = useSession();
 
   const [tasks, setTasks] = useState<KanbanTask[]>([]);
-  const [members, setMembers] = useState<{id: string, name: string}[]>([]);
+  const { memberMap } = useTeamMembers();
+  const members = useMemo(() => {
+    return Object.entries(memberMap).map(([id, info]) => ({
+      id,
+      name: info.name
+    }));
+  }, [memberMap]);
+  
   const [userRole, setUserRole] = useState('guest');
   const [loading, setLoading] = useState(true);
   
@@ -108,18 +116,8 @@ export default function KanbanPage() {
       setLoading(false);
     });
 
-    const membersRef = collection(db, `teams/${teamId}/member_summaries`);
-    const unsubscribeMembers = onSnapshot(membersRef, (snapshot) => {
-      const fetchedMembers = snapshot.docs.map(doc => ({
-        id: doc.id,
-        name: doc.data().name
-      }));
-      setMembers(fetchedMembers);
-    });
-
     return () => {
       unsubscribeTasks();
-      unsubscribeMembers();
       updateLastRead();
     };
   }, [teamId, dateFilter, session?.user?.id]);
