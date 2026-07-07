@@ -9,6 +9,7 @@ import { db, storage } from '@/lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot, addDoc, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { ChatMessage, chatBlockConverter, generateChatMediaStoragePath } from '@/types/chat';
+import { formatFileSize, getFileIconColorClass } from '@/lib/utils';
 
 interface TeamChatRoomProps {
   teamId: string;
@@ -29,6 +30,29 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [unreadThreshold, setUnreadThreshold] = useState<number | null>(null);
+  const [memberMap, setMemberMap] = useState<Record<string, {name: string, profileImage?: string}>>({});
+
+  useEffect(() => {
+    if (!teamId) return;
+    const membersRef = collection(db, `teams/${teamId}/member_summaries`);
+    const unsubscribeMembers = onSnapshot(membersRef, (snapshot) => {
+      const newMap: Record<string, {name: string, profileImage?: string}> = {};
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        newMap[docSnap.id] = {
+          name: data.name || data.nickname || '이름 없음',
+          profileImage: data.profileImage
+        };
+      });
+      setMemberMap(newMap);
+    });
+    return () => unsubscribeMembers();
+  }, [teamId]);
+
+  const getSenderInfo = React.useCallback((senderId: string) => {
+    if (senderId === currentUserId) return { name: '나', profileImage: undefined };
+    return memberMap[senderId] || { name: '알 수 없음', profileImage: undefined };
+  }, [memberMap, currentUserId]);
 
   // ==========================================
   // 0. 메타데이터 갱신 (Mount & Unmount 시점에만 기록 - 쓰기 비용 최적화)
@@ -168,7 +192,10 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
             senderId: currentUserId,
             senderRole: currentUserRole,
             content: isImage ? '사진을 보냈습니다.' : '파일을 보냈습니다.',
-            attachmentUrl: downloadURL
+            attachmentUrl: downloadURL,
+            attachmentName: file.name,
+            attachmentSize: file.size,
+            attachmentType: file.type
           } as any);
           
           setIsUploading(false);
@@ -234,7 +261,7 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
         
         {messages.map((msg, index) => {
           const isMe = msg.senderId === currentUserId;
-          const senderName = isMe ? '나' : (msg.senderId || '알 수 없음');
+          const senderInfo = getSenderInfo(msg.senderId);
           const isImageAttachment = msg.attachmentUrl && msg.content === '사진을 보냈습니다.';
           
           const prevMsg = index > 0 ? messages[index - 1] : null;
@@ -257,10 +284,14 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
               {/* 발신자 정보 & 뱃지 */}
               {!isMe && (
                 <div className="flex items-center gap-1.5 mb-1 pl-1">
-                  <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                    {senderName[0]}
-                  </div>
-                  <span className="text-xs font-bold text-slate-600">{senderName}</span>
+                  {senderInfo.profileImage ? (
+                    <img src={senderInfo.profileImage} alt="profile" className="w-6 h-6 rounded-full object-cover shadow-sm border border-slate-200" />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0 border border-slate-200">
+                      {senderInfo.name[0]}
+                    </div>
+                  )}
+                  <span className="text-xs font-bold text-slate-600">{senderInfo.name}</span>
                   {getRoleBadge(msg.senderRole)}
                 </div>
               )}
@@ -284,11 +315,23 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
                           <img src={msg.attachmentUrl} alt="attachment" className="w-full h-auto object-cover max-h-48 hover:scale-105 transition-transform" />
                         </div>
                       ) : (
-                        <a href={msg.attachmentUrl} target="_blank" rel="noreferrer" className={`flex items-center gap-2 p-2 rounded-xl border ${isMe ? 'bg-white/10 border-indigo-400' : 'bg-slate-50 border-slate-200'}`}>
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isMe ? 'bg-indigo-500' : 'bg-indigo-100'}`}>
-                            <FileText className={`w-4 h-4 ${isMe ? 'text-white' : 'text-indigo-600'}`} />
+                        <a href={msg.attachmentUrl} target="_blank" rel="noreferrer" className={`flex flex-col gap-1 p-2.5 rounded-xl border ${isMe ? 'bg-white/10 border-indigo-400' : 'bg-slate-50 border-slate-200'} hover:opacity-90 transition-opacity`}>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isMe ? 'bg-indigo-500' : 'bg-white shadow-sm'}`}>
+                              <FileText className={`w-4 h-4 ${isMe ? 'text-white' : getFileIconColorClass(msg.attachmentName)}`} />
+                            </div>
+                            <div className="overflow-hidden flex-1 min-w-[120px]">
+                              <p className={`text-[12px] font-bold truncate ${isMe ? 'text-white' : 'text-slate-700'}`}>
+                                {msg.attachmentName || '첨부파일'}
+                              </p>
+                              {msg.attachmentSize && (
+                                <p className={`text-[10px] font-medium ${isMe ? 'text-indigo-200' : 'text-slate-400'}`}>
+                                  {formatFileSize(msg.attachmentSize)}
+                                </p>
+                              )}
+                            </div>
+                            <Download className={`w-4 h-4 shrink-0 ${isMe ? 'text-white' : 'text-slate-400'}`} />
                           </div>
-                          <p className={`text-[11px] font-bold truncate ${isMe ? 'text-white' : 'text-slate-600'}`}>첨부파일 다운로드</p>
                         </a>
                       )}
                     </div>
@@ -386,10 +429,13 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
                         <img src={item.attachmentUrl!} alt="media" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                       </div>
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-indigo-50">
-                        <FileText className="w-8 h-8 text-indigo-400 mb-1" />
-                        <span className="text-[9px] font-bold text-indigo-700 truncate w-full">첨부파일</span>
-                      </div>
+                      <a href={item.attachmentUrl!} target="_blank" rel="noreferrer" className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-white hover:bg-slate-50 transition-colors border-0">
+                        <FileText className={`w-8 h-8 mb-2 ${getFileIconColorClass(item.attachmentName)}`} />
+                        <span className="text-[10px] font-bold text-slate-700 truncate w-full px-1">{item.attachmentName || '첨부파일'}</span>
+                        {item.attachmentSize && (
+                          <span className="text-[9px] text-slate-400 mt-0.5">{formatFileSize(item.attachmentSize)}</span>
+                        )}
+                      </a>
                     )}
                   </div>
                 ))}

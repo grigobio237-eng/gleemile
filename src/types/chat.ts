@@ -10,6 +10,9 @@ export interface ChatMessage {
   content: string;
   createdAt: number; // 밀리초(ms) 단위의 Unix Timestamp (낙관적 UI 및 프론트 렌더링 최적화)
   attachmentUrl?: string; // (선택) Storage 이미지/미디어 다운로드 URL
+  attachmentName?: string; // (선택) 원본 파일명
+  attachmentSize?: number; // (선택) 파일 크기(바이트)
+  attachmentType?: string; // (선택) 파일 MIME 타입
 }
 
 // Firestore에 저장될 원본 데이터 형태
@@ -19,6 +22,9 @@ export interface ChatMessageFirestore {
   content: string;
   createdAt: FieldValue | Timestamp; 
   attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentSize?: number;
+  attachmentType?: string;
 }
 
 // ==========================================
@@ -33,7 +39,10 @@ export const chatBlockConverter: FirestoreDataConverter<ChatMessage, DocumentDat
       senderRole: message.senderRole,
       content: message.content,
       createdAt: serverTimestamp(),
-      ...(message.attachmentUrl && { attachmentUrl: message.attachmentUrl })
+      ...(message.attachmentUrl && { attachmentUrl: message.attachmentUrl }),
+      ...(message.attachmentName && { attachmentName: message.attachmentName }),
+      ...(message.attachmentSize && { attachmentSize: message.attachmentSize }),
+      ...(message.attachmentType && { attachmentType: message.attachmentType })
     };
   },
   
@@ -54,7 +63,10 @@ export const chatBlockConverter: FirestoreDataConverter<ChatMessage, DocumentDat
       senderRole: data.senderRole,
       content: data.content,
       createdAt,
-      attachmentUrl: data.attachmentUrl
+      attachmentUrl: data.attachmentUrl,
+      attachmentName: data.attachmentName,
+      attachmentSize: data.attachmentSize,
+      attachmentType: data.attachmentType
     };
   }
 };
