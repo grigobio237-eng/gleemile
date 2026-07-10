@@ -370,7 +370,7 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
             ref={fileInputRef} 
             className="hidden" 
             onChange={handleFileSelect} 
-            accept="*/*" 
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.hwp,.txt,image/jpeg,image/png,image/webp" 
           />
           <button 
             type="button" 
