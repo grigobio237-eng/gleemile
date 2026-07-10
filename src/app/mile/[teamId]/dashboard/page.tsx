@@ -3,10 +3,10 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { doc, getDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, onSnapshot, writeBatch } from 'firebase/firestore';
 import { limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Loader2, ArrowLeft, UserPlus, LayoutDashboard, AlertCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, UserPlus, LayoutDashboard, AlertCircle, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -56,9 +56,10 @@ function DashboardContent() {
     if (status === 'unauthenticated') {
       router.replace('/');
     } else if (status === 'authenticated') {
+      if (userRole === 'leaving') return;
       fetchDashboard();
     }
-  }, [status, teamId]);
+  }, [status, teamId, userRole]);
 
   const fetchDashboard = async () => {
     setLoading(true);
@@ -104,7 +105,7 @@ function DashboardContent() {
   const [kanbanUnreadCount, setKanbanUnreadCount] = useState(0);
 
   useEffect(() => {
-    if (!teamId || !session?.user?.id) return;
+    if (!teamId || !session?.user?.id || userRole === 'guest' || userRole === 'leaving') return;
 
     let unsubAnnouncements: () => void;
     let unsubCommunity: () => void;
@@ -325,20 +326,54 @@ function DashboardContent() {
             </h1>
             <p className="text-xs text-slate-500 mt-1 font-medium">선택된 맞춤형 모듈에 따라 최적화된 뷰를 제공합니다.</p>
           </div>
-          
           <div className="flex gap-2">
-            {isManagerOrHigher(normalizeRole(userRole)) && (
+            {userRole !== 'owner' && userRole !== 'guest' && userRole !== 'leaving' && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-1 rounded-xl bg-white shadow-sm hover:bg-red-50 text-red-600 border-red-100 hover:border-red-200"
+                onClick={async () => {
+                  if (!session?.user?.id) return;
+                  if (!confirm("정말 클럽을 탈퇴하시겠습니까? 탈퇴 후에는 이전 데이터를 볼 수 없습니다.")) return;
+                  try {
+                    // 1. 상태를 leaving으로 변경하여 모든 onSnapshot 구독 해제 유도
+                    setUserRole('leaving');
+                    
+                    // 약간의 딜레이를 주어 리스너가 정리될 시간을 보장
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
+                    // 2. 일괄 삭제 (원자적 삭제)
+                    const batch = writeBatch(db);
+                    batch.delete(doc(db, `users/${session.user.id}/teams`, teamId));
+                    batch.delete(doc(db, `teams/${teamId}/member_summaries`, session.user.id));
+                    await batch.commit();
+
+                    // 3. 메인으로 리다이렉트
+                    router.replace('/');
+                  } catch (e) {
+                    console.error('클럽 탈퇴 오류:', e);
+                    alert('탈퇴 처리 중 문제가 발생했습니다.');
+                    setUserRole('member'); // 복구
+                  }
+                }}
+              >
+                <LogOut className="w-4 h-4" /> 탈퇴하기
+              </Button>
+            )}
+            {isManagerOrHigher(normalizeRole(userRole)) && userRole !== 'leaving' && (
               <Link href={`/mile/${teamId}/setup`}>
                 <Button variant="outline" size="sm" className="gap-1 rounded-xl bg-white shadow-sm hover:bg-slate-50">
                   <LayoutDashboard className="w-4 h-4" /> 대시보드 설정
                 </Button>
               </Link>
             )}
-            <Link href={`/mile/${teamId}/invite`}>
-              <Button variant="outline" size="sm" className="gap-1 rounded-xl bg-white shadow-sm hover:bg-slate-50 text-blue-600 border-blue-100 hover:bg-blue-50">
-                <UserPlus className="w-4 h-4" /> 팀원 초대
-              </Button>
-            </Link>
+            {userRole !== 'leaving' && (
+              <Link href={`/mile/${teamId}/invite`}>
+                <Button variant="outline" size="sm" className="gap-1 rounded-xl bg-white shadow-sm hover:bg-slate-50 text-blue-600 border-blue-100 hover:bg-blue-50">
+                  <UserPlus className="w-4 h-4" /> 팀원 초대
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 

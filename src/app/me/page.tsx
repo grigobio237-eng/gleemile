@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Loader2, LogOut, Shield, Mail, User, Camera, Smartphone, MapPin, Activity, Flame, HeartPulse, Plus, Settings2, Bell, EyeOff, Users, Trash2, AlertTriangle } from 'lucide-react';
@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { db } from '@/lib/firebase';
-import { doc, collection, onSnapshot, setDoc, getDoc, deleteDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, collection, onSnapshot, setDoc, getDoc, deleteDoc, updateDoc, arrayUnion, writeBatch } from 'firebase/firestore';
 import { GleemileUser } from '@/types/user';
 import { requestFCMToken, removeFCMToken } from '@/lib/firebase/messaging';
 
@@ -84,6 +84,10 @@ export default function MyPage() {
       unsubscribeTeams();
     };
   }, [status, session]);
+
+  // 팀 분리 로직 (useMemo로 렌더링 최적화)
+  const ownerTeams = useMemo(() => joinedTeams.filter(t => t.role === 'owner'), [joinedTeams]);
+  const memberTeams = useMemo(() => joinedTeams.filter(t => t.role !== 'owner'), [joinedTeams]);
 
   if (status === 'loading' || loading) {
     return (
@@ -163,7 +167,7 @@ export default function MyPage() {
     setSelectedTeamForLeave(team);
     
     if (team.role !== 'owner') {
-      setLeaveModalType('leave');
+      setLeaveModalType('leave'); // 일반 멤버 탈퇴
       return;
     }
 
@@ -194,11 +198,21 @@ export default function MyPage() {
       const userId = session.user.id;
 
       if (leaveModalType === 'leave') {
-        await deleteDoc(doc(db, `users/${userId}/teams`, teamId));
-        await deleteDoc(doc(db, `teams/${teamId}/member_summaries`, userId));
+        // 일반 멤버 탈퇴 (원자적 삭제)
+        const batch = writeBatch(db);
+        batch.delete(doc(db, `users/${userId}/teams`, teamId));
+        batch.delete(doc(db, `teams/${teamId}/member_summaries`, userId));
+        await batch.commit();
       } else if (leaveModalType === 'delete') {
-        await deleteDoc(doc(db, `users/${userId}/teams`, teamId));
-        await deleteDoc(doc(db, 'teams', teamId));
+        // 방장 방 삭제 (API 호출하여 재귀적 폭파)
+        const res = await fetch(`/api/mile/team/${teamId}`, { method: 'DELETE' });
+        if (!res.ok) {
+          throw new Error('클럽 삭제에 실패했습니다.');
+        }
+        // 내 목록에서도 제거
+        const batch = writeBatch(db);
+        batch.delete(doc(db, `users/${userId}/teams`, teamId));
+        await batch.commit();
       } else if (leaveModalType === 'delegate') {
         router.push(`/mile/${teamId}/members`);
         return; // Redirecting
@@ -285,62 +299,124 @@ export default function MyPage() {
 
 
         {/* 3. Multi-Squad Switcher */}
-        <div className="bg-white rounded-[28px] border border-line shadow-sm p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-obsidian flex items-center gap-2">
-              나의 스쿼드
-              <button 
-                onClick={() => setSquadEditMode(!squadEditMode)} 
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors ${squadEditMode ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
-              >
-                {squadEditMode ? '완료' : '관리'}
-              </button>
-            </h3>
-            <span className="text-[10px] font-bold text-slate-400">{joinedTeams.length}개 소속됨</span>
-          </div>
-          <div className="flex gap-4 overflow-x-auto pt-2 pb-2 px-1 custom-scrollbar items-start">
-            {joinedTeams.map((team) => {
-              const isEmoji = team.teamIcon && team.teamIcon.length <= 4;
-              const hasImage = team.logoUrl || team.logo || (team.teamIcon && !isEmoji);
-              const imgSource = team.logoUrl || team.logo || team.teamIcon;
-
-              return (
-                <div 
-                  key={team.id} 
-                  className="relative shrink-0 cursor-pointer group flex flex-col items-center gap-1.5 w-14"
-                  onClick={() => squadEditMode ? handleLeaveClick(team) : router.push(`/mile/${team.id}`)}
+        <div className="bg-white rounded-[28px] border border-line shadow-sm p-5 space-y-8">
+          
+          {/* Section 1: 내가 개설한 방 */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-obsidian flex items-center gap-2">
+                내가 개설한 방
+                <button 
+                  onClick={() => setSquadEditMode(!squadEditMode)} 
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors ${squadEditMode ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                 >
-                  <div 
-                    className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-md border-2 border-white ring-2 transition-all overflow-hidden group-hover:scale-105 ${squadEditMode ? 'opacity-90 ring-red-100 group-hover:ring-red-200' : 'ring-emerald-100'} ${!hasImage ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-slate-50'}`}
-                    title={team.teamName}
-                  >
-                    {isEmoji ? (
-                      <span className="text-2xl">{team.teamIcon}</span>
-                    ) : hasImage ? (
-                      <img src={imgSource} alt={team.teamName} className="w-full h-full object-cover" />
-                    ) : (
-                      team.teamName?.charAt(0)?.toUpperCase() || 'T'
-                    )}
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-600 w-[120%] text-center truncate">
-                    {team.teamName}
-                  </span>
-                  {squadEditMode && (
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white animate-in zoom-in-50 z-10 group-hover:scale-110 transition-transform">
-                      <Trash2 className="w-3.5 h-3.5" />
+                  {squadEditMode ? '완료' : '관리'}
+                </button>
+              </h3>
+              <span className="text-[10px] font-bold text-slate-400">{ownerTeams.length}개 소속됨</span>
+            </div>
+            
+            {ownerTeams.length === 0 ? (
+              <div className="py-4 text-center text-xs text-slate-400">개설한 방이 없습니다.</div>
+            ) : (
+              <div className="flex gap-4 overflow-x-auto pt-2 pb-2 px-1 custom-scrollbar items-start">
+                {ownerTeams.map((team) => {
+                  const isEmoji = team.teamIcon && team.teamIcon.length <= 4;
+                  const hasImage = team.logoUrl || team.logo || (team.teamIcon && !isEmoji);
+                  const imgSource = team.logoUrl || team.logo || team.teamIcon;
+
+                  return (
+                    <div 
+                      key={team.id} 
+                      className="relative shrink-0 cursor-pointer group flex flex-col items-center gap-1.5 w-14"
+                      onClick={() => squadEditMode ? handleLeaveClick(team) : router.push(`/mile/${team.id}/dashboard`)}
+                    >
+                      <div 
+                        className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-md border-2 border-white ring-2 transition-all overflow-hidden group-hover:scale-105 ${squadEditMode ? 'opacity-90 ring-red-100 group-hover:ring-red-200' : 'ring-emerald-100'} ${!hasImage ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-slate-50'}`}
+                        title={team.teamName}
+                      >
+                        {isEmoji ? (
+                          <span className="text-2xl">{team.teamIcon}</span>
+                        ) : hasImage ? (
+                          <img src={imgSource} alt={team.teamName} className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{team.teamName?.charAt(0)?.toUpperCase() || 'T'}</span>
+                        )}
+                        {squadEditMode && (
+                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white animate-in zoom-in-50 z-10 group-hover:scale-110 transition-transform">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-600 truncate w-[120%] text-center group-hover:text-emerald-600 transition-colors">
+                        {team.teamName}
+                      </span>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-            {!squadEditMode && (
-              <button 
-                onClick={() => router.push('/')}
-                className="w-14 h-14 bg-slate-50 border border-dashed border-slate-300 rounded-2xl flex-shrink-0 flex flex-col items-center justify-center text-slate-400 hover:text-emerald-600 hover:border-emerald-300 transition-all shrink-0"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
+                  );
+                })}
+              </div>
             )}
+          </div>
+
+          {/* Section 2: 내가 가입한 방 */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-obsidian flex items-center gap-2">
+                내가 가입한 방
+              </h3>
+              <span className="text-[10px] font-bold text-slate-400">{memberTeams.length}개 소속됨</span>
+            </div>
+            
+            {memberTeams.length === 0 ? (
+              <div className="py-4 text-center text-xs text-slate-400">가입한 방이 없습니다.</div>
+            ) : (
+              <div className="flex gap-4 overflow-x-auto pt-2 pb-2 px-1 custom-scrollbar items-start">
+                {memberTeams.map((team) => {
+                  const isEmoji = team.teamIcon && team.teamIcon.length <= 4;
+                  const hasImage = team.logoUrl || team.logo || (team.teamIcon && !isEmoji);
+                  const imgSource = team.logoUrl || team.logo || team.teamIcon;
+
+                  return (
+                    <div 
+                      key={team.id} 
+                      className="relative shrink-0 cursor-pointer group flex flex-col items-center gap-1.5 w-14"
+                      onClick={() => squadEditMode ? handleLeaveClick(team) : router.push(`/mile/${team.id}/dashboard`)}
+                    >
+                      <div 
+                        className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-md border-2 border-white ring-2 transition-all overflow-hidden group-hover:scale-105 ${squadEditMode ? 'opacity-90 ring-red-100 group-hover:ring-red-200' : 'ring-emerald-100'} ${!hasImage ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-slate-50'}`}
+                        title={team.teamName}
+                      >
+                        {isEmoji ? (
+                          <span className="text-2xl">{team.teamIcon}</span>
+                        ) : hasImage ? (
+                          <img src={imgSource} alt={team.teamName} className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{team.teamName?.charAt(0)?.toUpperCase() || 'T'}</span>
+                        )}
+                        {squadEditMode && (
+                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-slate-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white animate-in zoom-in-50 z-10 group-hover:scale-110 transition-transform">
+                            <LogOut className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-600 truncate w-[120%] text-center group-hover:text-emerald-600 transition-colors">
+                        {team.teamName}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          
+          {/* Create New Team Button */}
+          <div className="pt-2 flex justify-center">
+            <button 
+              onClick={() => router.push('/')}
+              className="w-14 h-14 bg-slate-50 border border-dashed border-slate-300 rounded-2xl flex-shrink-0 flex flex-col items-center justify-center text-slate-400 hover:text-emerald-600 hover:border-emerald-300 transition-all shrink-0 hover:scale-105"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
