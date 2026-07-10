@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Paperclip, Send, Download, Layers, FileText, File, Loader2 } from 'lucide-react';
+import { X, Paperclip, Send, Download, Layers, FileText, File, Loader2, Camera, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 
@@ -26,9 +26,11 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
   
   const [showMediaDrawer, setShowMediaDrawer] = useState(false);
   const [previewImage, setPreviewImage] = useState<ChatMessage | null>(null);
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
 
   const [unreadThreshold, setUnreadThreshold] = useState<number | null>(null);
   const { memberMap } = useTeamMembers();
@@ -166,6 +168,9 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
 
     setIsUploading(true);
     const isImage = file.type.startsWith('image/');
+    
+    // 선택 후 input 초기화 (동일 파일 재선택 가능하게)
+    e.target.value = '';
     
     try {
       // 💡 유틸리티를 통한 안전한 Storage 경로 생성
@@ -364,18 +369,59 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
           )}
         </AnimatePresence>
         
-        <form onSubmit={handleSendText} className="flex items-end gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 transition-all">
+        <form onSubmit={handleSendText} className="flex items-end gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 transition-all relative">
+          
+          <AnimatePresence>
+            {showAttachmentMenu && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="absolute bottom-14 left-0 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 flex flex-col gap-1 z-50 w-40"
+              >
+                <button 
+                  type="button"
+                  onClick={() => { imageInputRef.current?.click(); setShowAttachmentMenu(false); }} 
+                  className="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-pink-50 flex items-center justify-center">
+                    <Camera className="w-4 h-4 text-pink-500" />
+                  </div>
+                  사진/동영상
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => { docInputRef.current?.click(); setShowAttachmentMenu(false); }} 
+                  className="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-indigo-500" />
+                  </div>
+                  파일/문서
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <input 
             type="file" 
-            ref={fileInputRef} 
+            ref={imageInputRef} 
             className="hidden" 
             onChange={handleFileSelect} 
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.hwp,.txt,image/jpeg,image/png,image/webp" 
+            accept="image/*,video/*" 
           />
+          <input 
+            type="file" 
+            ref={docInputRef} 
+            className="hidden" 
+            onChange={handleFileSelect} 
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.hwp,.txt,application/*,text/*" 
+          />
+
           <button 
             type="button" 
-            onClick={() => fileInputRef.current?.click()}
-            className="w-10 h-10 shrink-0 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+            onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+            className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-xl transition-colors ${showAttachmentMenu ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
           >
             <Paperclip className="w-5 h-5" />
           </button>
