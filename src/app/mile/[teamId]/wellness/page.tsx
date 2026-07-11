@@ -299,7 +299,7 @@ export default function WellnessCheckPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] p-4 pb-24 font-sans selection:bg-emerald-200">
-      <div className="max-w-lg mx-auto space-y-8 pt-4 md:pt-24">
+      <div className="max-w-lg w-full mx-auto space-y-8 pt-4 md:pt-24">
         <div>
           <Link href={`/mile/${teamId}/dashboard`} className="text-slate hover:text-obsidian inline-flex items-center gap-1 text-sm mb-1 font-bold">
             <ArrowLeft className="w-4 h-4" /> 대시보드로 돌아가기
@@ -321,7 +321,7 @@ export default function WellnessCheckPage() {
           {CONDITION_ITEMS.map((item) => {
             const Icon = item.icon;
             return (
-              <Card key={item.key} className="rounded-2xl border-none shadow-lg">
+              <Card key={item.key} className="rounded-2xl border-none shadow-lg w-full overflow-hidden">
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-center gap-2">
                     <Icon className="w-5 h-5 text-green-600" />
@@ -333,13 +333,13 @@ export default function WellnessCheckPage() {
                     )}
                   </div>
                   <p className="text-xs text-slate">{item.desc[dailyIndex] || item.desc[0]}</p>
-                  <div className="overflow-x-auto pb-2 custom-scrollbar">
-                    <div className="flex gap-2 min-w-[340px]">
+                  <div className="overflow-x-auto pb-2 custom-scrollbar w-full">
+                    <div className="flex gap-2 min-w-max">
                       {[1, 2, 3, 4, 5].map((score) => (
                         <button
                           key={score}
                           onClick={() => setValues({ ...values, [item.key]: score })}
-                          className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                          className={`flex-1 min-w-[64px] py-3 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                             values[item.key] === score
                               ? score <= 2
                                 ? 'bg-green-500 text-white shadow-lg scale-105'
@@ -368,7 +368,7 @@ export default function WellnessCheckPage() {
           {BURNOUT_ITEMS.map((item) => {
             const Icon = item.icon;
             return (
-              <Card key={item.key} className="rounded-2xl border-none shadow-lg">
+              <Card key={item.key} className="rounded-2xl border-none shadow-lg w-full overflow-hidden">
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-center gap-2">
                     <Icon className="w-5 h-5 text-indigo-600" />
@@ -380,13 +380,13 @@ export default function WellnessCheckPage() {
                     )}
                   </div>
                   <p className="text-xs text-slate">{item.desc[dailyIndex] || item.desc[0]}</p>
-                  <div className="overflow-x-auto pb-2 custom-scrollbar">
-                    <div className="flex gap-2 min-w-[340px]">
+                  <div className="overflow-x-auto pb-2 custom-scrollbar w-full">
+                    <div className="flex gap-2 min-w-max">
                       {[1, 2, 3, 4, 5].map((score) => (
                         <button
                           key={score}
                           onClick={() => setValues({ ...values, [item.key]: score })}
-                          className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                          className={`flex-1 min-w-[64px] py-3 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                             values[item.key] === score
                               ? score >= 4
                                 ? 'bg-green-500 text-white shadow-lg scale-105'

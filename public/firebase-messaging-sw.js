@@ -39,6 +39,14 @@ try {
       data: payload.data
     };
 
+    // FCM payload data에서 badge 숫자를 받아 PWA 배지 업데이트
+    if (payload.data && payload.data.badge && navigator.setAppBadge) {
+      const badgeCount = parseInt(payload.data.badge, 10);
+      if (!isNaN(badgeCount) && badgeCount > 0) {
+        navigator.setAppBadge(badgeCount).catch(console.error);
+      }
+    }
+
     self.registration.showNotification(notificationTitle, notificationOptions);
   });
 } catch (error) {

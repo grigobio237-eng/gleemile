@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export function GlobalBadgeProvider({ children }: { children: React.ReactNode }) {
@@ -10,26 +10,25 @@ export function GlobalBadgeProvider({ children }: { children: React.ReactNode })
   const userId = session?.user?.id;
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
 
-  // 1. 단일 알림 요약 문서 실시간 구독 (Firestore 읽기 최적화)
+  // 1. 모든 팀의 개별 unreadCount 합산 (클라이언트 사이드 집계)
   useEffect(() => {
     if (!userId) {
       setTotalUnreadCount(0);
       return;
     }
 
-    // 유저 메인 문서(users/{userId})에서 서버(Cloud Function 등)가 집계해주는 
-    // 통합 안 읽음 카운트 필드(unreadTotal) 단 하나만 리스닝합니다.
-    const userRef = doc(db, 'users', userId);
+    const teamMetaRef = collection(db, 'users', userId, 'team_metadata');
     
-    const unsubscribe = onSnapshot(userRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        // 서버에서 업데이트 해주는 unreadTotal 필드 참조 (없으면 0)
-        const currentTotal = data.unreadTotal || 0;
-        setTotalUnreadCount(currentTotal);
-      }
+    const unsubscribe = onSnapshot(teamMetaRef, (snap) => {
+      let sum = 0;
+      snap.forEach(doc => {
+        const data = doc.data();
+        // 각 팀 대시보드 진입 시 업데이트되는 lastUnreadCount 합산
+        sum += data.lastUnreadCount || 0;
+      });
+      setTotalUnreadCount(sum);
     }, (err) => {
-      console.error("Failed to subscribe to global unread count:", err);
+      console.error("Failed to subscribe to team metadata for badge:", err);
     });
 
     return () => unsubscribe();

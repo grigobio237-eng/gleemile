@@ -3,10 +3,13 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { doc, getDoc, collection, query, where, getDocs, onSnapshot, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, onSnapshot, writeBatch, updateDoc } from 'firebase/firestore';
 import { limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Loader2, ArrowLeft, UserPlus, LayoutDashboard, AlertCircle, LogOut } from 'lucide-react';
+import { Loader2, ArrowLeft, UserPlus, LayoutDashboard, AlertCircle, LogOut, GripHorizontal } from 'lucide-react';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -37,6 +40,31 @@ const BLOCK_REGISTRY: Record<string, React.FC<any>> = {
   ClassAttendanceBlock,
   KanbanTaskBlock
 };
+
+function SortableItem({ id, children, isManager }: { id: string, children: React.ReactNode, isManager: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: !isManager });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 'auto',
+    opacity: isDragging ? 0.8 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative w-full">
+      {isManager && (
+        <div 
+          className="absolute top-2 right-2 z-20 p-2 bg-white/60 hover:bg-white backdrop-blur-sm rounded-full shadow-sm border border-slate-100 cursor-grab active:cursor-grabbing transition-colors"
+          {...attributes} 
+          {...listeners}
+        >
+          <GripHorizontal className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
 
 function DashboardContent() {
   const { data: session, status } = useSession();
@@ -103,6 +131,45 @@ function DashboardContent() {
   const [attendanceUnreadCount, setAttendanceUnreadCount] = useState(0);
   const [lineupUnreadCount, setLineupUnreadCount] = useState(0);
   const [kanbanUnreadCount, setKanbanUnreadCount] = useState(0);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = enabledModules.indexOf(active.id as string);
+      const newIndex = enabledModules.indexOf(over.id as string);
+      const newOrder = arrayMove(enabledModules, oldIndex, newIndex);
+      
+      // Optimistic UI update
+      setEnabledModules(newOrder);
+
+      // Save to Firestore
+      try {
+        const teamRef = doc(db, 'teams', teamId);
+        await updateDoc(teamRef, { enabledModules: newOrder });
+      } catch (e) {
+        console.error('Failed to save module order', e);
+        // Revert on failure
+        setEnabledModules(enabledModules);
+      }
+    }
+  };
 
   useEffect(() => {
     if (!teamId || !session?.user?.id || userRole === 'guest' || userRole === 'leaving') return;
@@ -295,6 +362,37 @@ function DashboardContent() {
     };
   }, [teamId, session?.user?.id, userRole]);
 
+  // 주기적으로(또는 알림 수가 바뀔 때마다) GlobalBadgeProvider를 위해 총 알림 수를 저장
+  useEffect(() => {
+    if (!teamId || !session?.user?.id || userRole === 'guest' || userRole === 'leaving') return;
+    const saveUnreadCount = async () => {
+      const totalUnread = 
+        (enabledModules.includes('AnnouncementBlock') ? announcementsUnreadCount : 0) +
+        (enabledModules.includes('CommunityBlock') ? communityUnreadCount : 0) +
+        (enabledModules.includes('ScheduleBlock') ? scheduleUnreadCount : 0) +
+        (enabledModules.includes('PlayersBlock') ? playersUnreadCount : 0) +
+        (enabledModules.includes('ExpenseSettlementBlock') ? expenseUnreadCount : 0) +
+        (enabledModules.includes('ClassAttendanceBlock') ? attendanceUnreadCount : 0) +
+        (enabledModules.includes('BracketPositionBlock') ? lineupUnreadCount : 0) +
+        (enabledModules.includes('KanbanTaskBlock') ? kanbanUnreadCount : 0) +
+        chatUnreadCount;
+      
+      try {
+        await updateDoc(doc(db, `users/${session.user.id}/team_metadata`, teamId), {
+          lastUnreadCount: totalUnread
+        });
+      } catch (e) {
+        console.debug("Failed to update lastUnreadCount for badge", e);
+      }
+    };
+    saveUnreadCount();
+  }, [
+    teamId, session?.user?.id, userRole, enabledModules,
+    announcementsUnreadCount, communityUnreadCount, scheduleUnreadCount,
+    playersUnreadCount, expenseUnreadCount, attendanceUnreadCount,
+    lineupUnreadCount, kanbanUnreadCount, chatUnreadCount
+  ]);
+
   if (loading || status === 'loading') {
     return (
       <div className="min-h-screen bg-[#FAF9F6] flex items-center justify-center">
@@ -382,9 +480,25 @@ function DashboardContent() {
         <div className="flex gap-1.5 mb-6 bg-slate-200/50 p-1.5 rounded-full w-fit mx-auto shadow-inner border border-slate-200/60">
           <button 
             onClick={() => router.push('?view=dashboard', {scroll: false})} 
-            className={`px-6 py-2 text-sm rounded-full transition-all duration-200 ${view === 'dashboard' ? 'bg-white shadow-sm font-black text-slate-800' : 'font-bold text-slate-500 hover:text-slate-700'}`}
+            className={`px-6 py-2 text-sm rounded-full transition-all duration-200 relative flex items-center gap-1.5 ${view === 'dashboard' ? 'bg-white shadow-sm font-black text-slate-800' : 'font-bold text-slate-500 hover:text-slate-700'}`}
           >
             클럽 대시보드
+            {(() => {
+              const totalUnread = 
+                (enabledModules.includes('AnnouncementBlock') ? announcementsUnreadCount : 0) +
+                (enabledModules.includes('CommunityBlock') ? communityUnreadCount : 0) +
+                (enabledModules.includes('ScheduleBlock') ? scheduleUnreadCount : 0) +
+                (enabledModules.includes('PlayersBlock') ? playersUnreadCount : 0) +
+                (enabledModules.includes('ExpenseSettlementBlock') ? expenseUnreadCount : 0) +
+                (enabledModules.includes('ClassAttendanceBlock') ? attendanceUnreadCount : 0) +
+                (enabledModules.includes('BracketPositionBlock') ? lineupUnreadCount : 0) +
+                (enabledModules.includes('KanbanTaskBlock') ? kanbanUnreadCount : 0);
+              return totalUnread > 0 && view !== 'dashboard' ? (
+                <span className="absolute -top-1 -right-2 bg-[#E05A47] text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-black animate-bounce shadow-sm">
+                  {totalUnread > 99 ? '99+' : totalUnread}
+                </span>
+              ) : null;
+            })()}
           </button>
           <button 
             onClick={() => router.push('?view=chat', {scroll: false})} 
@@ -440,32 +554,40 @@ function DashboardContent() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-            {enabledModules.map(moduleId => {
-              const BlockComponent = BLOCK_REGISTRY[moduleId];
-              if (!BlockComponent) return null;
-              
-              return (
-                <div key={moduleId} className="w-full">
-                  <BlockComponent 
-                    role={userRole} 
-                    teamId={teamId} 
-                    userId={session?.user?.id || 'test_user'} 
-                    unreadCount={
-                      moduleId === 'AnnouncementBlock' ? announcementsUnreadCount :
-                      moduleId === 'CommunityBlock' ? communityUnreadCount :
-                      moduleId === 'ScheduleBlock' ? scheduleUnreadCount : 
-                      moduleId === 'PlayersBlock' ? playersUnreadCount :
-                      moduleId === 'ExpenseSettlementBlock' ? expenseUnreadCount : 
-                      moduleId === 'ClassAttendanceBlock' ? attendanceUnreadCount : 
-                      moduleId === 'BracketPositionBlock' ? lineupUnreadCount : 
-                      moduleId === 'KanbanTaskBlock' ? kanbanUnreadCount : 0
-                    }
-                  />
-                </div>
-              );
-            })}
-          </div>
+          <DndContext 
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={enabledModules} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                {enabledModules.map(moduleId => {
+                  const BlockComponent = BLOCK_REGISTRY[moduleId];
+                  if (!BlockComponent) return null;
+                  
+                  return (
+                    <SortableItem key={moduleId} id={moduleId} isManager={isManagerOrHigher(normalizeRole(userRole)) && userRole !== 'leaving'}>
+                      <BlockComponent 
+                        role={userRole} 
+                        teamId={teamId} 
+                        userId={session?.user?.id || 'test_user'} 
+                        unreadCount={
+                          moduleId === 'AnnouncementBlock' ? announcementsUnreadCount :
+                          moduleId === 'CommunityBlock' ? communityUnreadCount :
+                          moduleId === 'ScheduleBlock' ? scheduleUnreadCount : 
+                          moduleId === 'PlayersBlock' ? playersUnreadCount :
+                          moduleId === 'ExpenseSettlementBlock' ? expenseUnreadCount : 
+                          moduleId === 'ClassAttendanceBlock' ? attendanceUnreadCount : 
+                          moduleId === 'BracketPositionBlock' ? lineupUnreadCount : 
+                          moduleId === 'KanbanTaskBlock' ? kanbanUnreadCount : 0
+                        }
+                      />
+                    </SortableItem>
+                  );
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
           </>
         ) : (
