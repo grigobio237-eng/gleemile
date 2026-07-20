@@ -33,12 +33,16 @@ import { ClassAttendanceBlock } from '@/components/blocks/ClassAttendanceBlock';
 
 import { KanbanTaskBlock } from '@/components/blocks/KanbanTaskBlock';
 import { TeamChatRoom } from '@/components/chat/TeamChatRoom';
+import SmartPuttingAssistantBlock from '@/components/blocks/golf/SmartPuttingAssistantBlock';
+import SmartPinFinderBlock from '@/components/blocks/golf/SmartPinFinderBlock';
 
 const BLOCK_REGISTRY: Record<string, React.FC<any>> = {
   AnnouncementBlock, CommunityBlock, ScheduleBlock, ExpenseSettlementBlock, WellnessBlock,
   PhysicalACWRBlock, TacticalDrawingBlock, BracketPositionBlock, PlayersBlock, SessionDifficultyBlock,
   ClassAttendanceBlock,
-  KanbanTaskBlock
+  KanbanTaskBlock,
+  SmartPuttingAssistantBlock,
+  SmartPinFinderBlock
 };
 
 function SortableItem({ id, children, isManager }: { id: string, children: React.ReactNode, isManager: boolean }) {

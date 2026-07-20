@@ -14,7 +14,7 @@ import {
   Activity, PenTool, LayoutTemplate, Users, ShieldAlert,
   GraduationCap, BookOpen, ThumbsUp, Timer, CalendarCheck,
   Target, KanbanSquare, RefreshCw, ActivitySquare, ClipboardList,
-  Flame, Image, FileVideo, Scale, Crown, ChevronDown, UserCircle2
+  Flame, Image, FileVideo, Scale, Crown, ChevronDown, UserCircle2, Flag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -30,6 +30,8 @@ const AVAILABLE_MODULES = [
   { id: 'WellnessBlock', category: 'common', label: '웰니스 컨디션', description: '멤버들의 피로도와 웰니스 기록.', icon: HeartPulse, color: 'text-rose-500', bg: 'bg-rose-50' },
 
   // 스포츠
+  { id: 'SmartPinFinderBlock', category: 'sports', label: '스마트 핀 파인더', description: '카메라로 깃대를 조준하여 샷 거리와 고저차를 측정합니다.', icon: Flag, color: 'text-blue-500', bg: 'bg-blue-50' },
+  { id: 'SmartPuttingAssistantBlock', category: 'sports', label: '스마트 퍼팅 어시스턴트', description: 'AR 화면으로 홀컵을 비추면 보정 거리와 에이밍을 알려줍니다.', icon: Target, color: 'text-emerald-500', bg: 'bg-emerald-50' },
   { id: 'PhysicalACWRBlock', category: 'sports', label: '부상 위험도 모니터링', description: '부상 방지 및 훈련 부하량 관리.', icon: Activity, color: 'text-red-500', bg: 'bg-red-50' },
   { id: 'TacticalDrawingBlock', category: 'sports', label: '전술 보드', description: '경기 전술을 그리기 및 공유.', icon: PenTool, color: 'text-slate-600', bg: 'bg-slate-100' },
   { id: 'BracketPositionBlock', category: 'sports', label: '전술 보드 및 라인업', description: '실시간 포메이션 전술판 및 라인업.', icon: LayoutTemplate, color: 'text-sky-500', bg: 'bg-sky-50' },
