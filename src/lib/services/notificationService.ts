@@ -20,7 +20,7 @@ export async function sendPushNotification(
       .get();
 
     const targetUserIds: string[] = [];
-    membersSnap.forEach(doc => {
+    membersSnap.forEach((doc: any) => {
       const data = doc.data();
       if (data.userId !== senderId) {
         targetUserIds.push(data.userId);
