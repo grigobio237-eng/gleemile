@@ -17,7 +17,7 @@ if (!admin.apps.length) {
   }
 }
 
-export const adminDb = admin.apps.length ? admin.firestore() : null as any;
-export const adminMessaging = admin.apps.length ? admin.messaging() : null as any;
-export const adminStorage = admin.apps.length ? admin.storage() : null as any;
-export const adminAuth = admin.apps.length ? admin.auth() : null as any;
+export const adminDb = (admin.apps.length ? admin.firestore() : null) as unknown as admin.firestore.Firestore;
+export const adminMessaging = (admin.apps.length ? admin.messaging() : null) as unknown as admin.messaging.Messaging;
+export const adminStorage = (admin.apps.length ? admin.storage() : null) as unknown as admin.storage.Storage;
+export const adminAuth = (admin.apps.length ? admin.auth() : null) as unknown as admin.auth.Auth;
