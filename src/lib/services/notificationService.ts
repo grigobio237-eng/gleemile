@@ -78,7 +78,7 @@ export async function sendPushNotification(
     // 5. 실패한(만료된) 토큰 자동 청소 (Self-cleanup)
     if (response.failureCount > 0) {
       const failedTokens: string[] = [];
-      response.responses.forEach((resp, idx) => {
+      response.responses.forEach((resp: any, idx: number) => {
         if (!resp.success) {
           failedTokens.push(tokens[idx]);
           failureCount++;
