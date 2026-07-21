@@ -50,7 +50,7 @@ export async function sendPushNotification(
 
       // (2) 조건 통과 시 활성 토큰 수집
       const tokensSnap = await adminDb.collection(`users/${uid}/fcmTokens`).get();
-      tokensSnap.forEach(tokenDoc => {
+      tokensSnap.forEach((tokenDoc: any) => {
         const t = tokenDoc.data().token;
         if (t) {
           tokens.push(t);
