@@ -1,3 +1,4 @@
+// @ts-ignore
 import cache from "@opennextjs/cloudflare/kvCache";
 
 export default {
