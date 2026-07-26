@@ -11,6 +11,7 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { ChatMessage, chatBlockConverter, generateChatMediaStoragePath } from '@/types/chat';
 import { formatFileSize, getFileIconColorClass } from '@/lib/utils';
 import { useTeamMembers } from '@/providers/TeamMemberProvider';
+import { LinkPreview } from './LinkPreview';
 
 interface TeamChatRoomProps {
   teamId: string;
@@ -322,48 +323,61 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
               )}
               
               <div className={`flex items-end gap-1.5 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                {/* 말풍선 버블 */}
-                <div className={`px-4 py-2.5 max-w-[240px] md:max-w-[300px] break-words shadow-sm ${
-                  isMe 
-                    ? 'bg-indigo-600 text-white rounded-[20px] rounded-tr-sm' 
-                    : 'bg-white text-obsidian border border-slate-100 rounded-[20px] rounded-tl-sm'
-                }`}>
-                  {msg.content && (
-                    <p className="text-[13px] whitespace-pre-wrap leading-relaxed">
-                      {renderMessageContent(msg.content, isMe)}
-                    </p>
-                  )}
-                  
-                  {/* 미디어 프리뷰 */}
-                  {msg.attachmentUrl && (
-                    <div className="mt-2">
-                      {isImageAttachment ? (
-                        <div className="cursor-pointer overflow-hidden rounded-xl" onClick={() => setPreviewImage(msg)}>
-                          <img src={msg.attachmentUrl} alt="attachment" className="w-full h-auto object-cover max-h-48 hover:scale-105 transition-transform" />
-                        </div>
-                      ) : (
-                        <a href={msg.attachmentUrl} target="_blank" rel="noreferrer" className={`flex flex-col gap-1 p-2.5 rounded-xl border ${isMe ? 'bg-white/10 border-indigo-400' : 'bg-slate-50 border-slate-200'} hover:opacity-90 transition-opacity`}>
-                          <div className="flex items-center gap-2">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isMe ? 'bg-indigo-500' : 'bg-white shadow-sm'}`}>
-                              <FileText className={`w-4 h-4 ${isMe ? 'text-white' : getFileIconColorClass(msg.attachmentName)}`} />
-                            </div>
-                            <div className="overflow-hidden flex-1 min-w-[120px]">
-                              <p className={`text-[12px] font-bold truncate ${isMe ? 'text-white' : 'text-slate-700'}`}>
-                                {msg.attachmentName || '첨부파일'}
-                              </p>
-                              {msg.attachmentSize && (
-                                <p className={`text-[10px] font-medium ${isMe ? 'text-indigo-200' : 'text-slate-400'}`}>
-                                  {formatFileSize(msg.attachmentSize)}
-                                </p>
-                              )}
-                            </div>
-                            <Download className={`w-4 h-4 shrink-0 ${isMe ? 'text-white' : 'text-slate-400'}`} />
+                {/* 말풍선 버블 및 링크 프리뷰 컨테이너 */}
+                <div className={`flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}>
+                  <div className={`px-4 py-2.5 max-w-[240px] md:max-w-[300px] break-words shadow-sm ${
+                    isMe 
+                      ? 'bg-indigo-600 text-white rounded-[20px] rounded-tr-sm' 
+                      : 'bg-white text-obsidian border border-slate-100 rounded-[20px] rounded-tl-sm'
+                  }`}>
+                    {msg.content && (
+                      <p className="text-[13px] whitespace-pre-wrap leading-relaxed">
+                        {renderMessageContent(msg.content, isMe)}
+                      </p>
+                    )}
+                    
+                    {/* 미디어 프리뷰 */}
+                    {msg.attachmentUrl && (
+                      <div className="mt-2">
+                        {isImageAttachment ? (
+                          <div className="cursor-pointer overflow-hidden rounded-xl" onClick={() => setPreviewImage(msg)}>
+                            <img src={msg.attachmentUrl} alt="attachment" className="w-full h-auto object-cover max-h-48 hover:scale-105 transition-transform" />
                           </div>
-                        </a>
-                      )}
-                    </div>
-                  )}
+                        ) : (
+                          <a href={msg.attachmentUrl} target="_blank" rel="noreferrer" className={`flex flex-col gap-1 p-2.5 rounded-xl border ${isMe ? 'bg-white/10 border-indigo-400' : 'bg-slate-50 border-slate-200'} hover:opacity-90 transition-opacity`}>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isMe ? 'bg-indigo-500' : 'bg-white shadow-sm'}`}>
+                                <FileText className={`w-4 h-4 ${isMe ? 'text-white' : getFileIconColorClass(msg.attachmentName)}`} />
+                              </div>
+                              <div className="overflow-hidden flex-1 min-w-[120px]">
+                                <p className={`text-[12px] font-bold truncate ${isMe ? 'text-white' : 'text-slate-700'}`}>
+                                  {msg.attachmentName || '첨부파일'}
+                                </p>
+                                {msg.attachmentSize && (
+                                  <p className={`text-[10px] font-medium ${isMe ? 'text-indigo-200' : 'text-slate-400'}`}>
+                                    {formatFileSize(msg.attachmentSize)}
+                                  </p>
+                                )}
+                              </div>
+                              <Download className={`w-4 h-4 shrink-0 ${isMe ? 'text-white' : 'text-slate-400'}`} />
+                            </div>
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Link Previews */}
+                  {(() => {
+                    if (!msg.content) return null;
+                    const urlRegex = /(https?:\/\/[^\s]+)/g;
+                    const urls = msg.content.match(urlRegex) || [];
+                    // Remove duplicates
+                    const uniqueUrls = Array.from(new Set(urls));
+                    return uniqueUrls.map(url => <LinkPreview key={url} url={url} />);
+                  })()}
                 </div>
+
                 {/* 시간 */}
                 <span className="text-[9px] text-slate-400 font-bold mb-1">
                   {formatTime(msg.createdAt)}
