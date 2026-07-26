@@ -87,15 +87,21 @@ function SortableModuleItem({ id, module }: { id: string, module: any }) {
     <div 
       ref={setNodeRef} 
       style={style} 
-      className="flex-shrink-0 flex items-center gap-2 bg-white border border-emerald-200 rounded-xl px-3 py-2 shadow-sm w-[160px] cursor-grab active:cursor-grabbing touch-none snap-center"
-      {...attributes}
-      {...listeners}
+      className={`flex-shrink-0 flex items-center gap-2 bg-white border rounded-xl px-3 py-2 shadow-sm w-[160px] snap-center ${
+        isDragging ? 'border-emerald-500 shadow-md ring-1 ring-emerald-500' : 'border-emerald-200'
+      }`}
     >
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${module.bg}`}>
         <Icon className={`w-4 h-4 ${module.color}`} />
       </div>
       <span className="text-xs font-bold text-slate-700 truncate select-none">{module.label}</span>
-      <GripHorizontal className="w-4 h-4 text-slate-300 ml-auto shrink-0 pointer-events-none" />
+      <div 
+        className="ml-auto shrink-0 p-1 cursor-grab active:cursor-grabbing touch-none flex items-center justify-center rounded-md hover:bg-slate-50"
+        {...attributes}
+        {...listeners}
+      >
+        <GripHorizontal className="w-4 h-4 text-slate-400 pointer-events-none" />
+      </div>
     </div>
   );
 }
