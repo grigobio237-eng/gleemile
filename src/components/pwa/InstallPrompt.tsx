@@ -24,19 +24,23 @@ export function InstallPrompt() {
     
     if (isIos) {
       let hasDismissed = false;
-      try { hasDismissed = localStorage.getItem('ios_pwa_prompt_dismissed') === 'true'; } catch(e) {}
+      try { hasDismissed = localStorage.getItem('ios_pwa_prompt_dismissed_v2') === 'true'; } catch(e) {}
       if (!hasDismissed) {
         setShowIosPrompt(true);
       }
     } else if (isAndroid) {
-      // Android는 beforeinstallprompt 이벤트를 기다립니다.
+      let hasDismissed = false;
+      try { hasDismissed = localStorage.getItem('android_pwa_prompt_dismissed_v2') === 'true'; } catch(e) {}
+      if (!hasDismissed) {
+        setShowAndroidPrompt(true);
+      }
     }
 
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
       let hasDismissed = false;
-      try { hasDismissed = localStorage.getItem('android_pwa_prompt_dismissed') === 'true'; } catch(err) {}
+      try { hasDismissed = localStorage.getItem('android_pwa_prompt_dismissed_v2') === 'true'; } catch(err) {}
       if (!hasDismissed) {
         setShowAndroidPrompt(true);
       }
@@ -70,11 +74,11 @@ export function InstallPrompt() {
 
   const dismissAndroid = () => {
     setShowAndroidPrompt(false);
-    try { localStorage.setItem('android_pwa_prompt_dismissed', 'true'); } catch(e) {}
+    try { localStorage.setItem('android_pwa_prompt_dismissed_v2', 'true'); } catch(e) {}
   };
 
   const dismissIos = () => {
-    try { localStorage.setItem('ios_pwa_prompt_dismissed', 'true'); } catch(e) {}
+    try { localStorage.setItem('ios_pwa_prompt_dismissed_v2', 'true'); } catch(e) {}
     setShowIosPrompt(false);
   };
 
@@ -95,9 +99,18 @@ export function InstallPrompt() {
             <X className="w-4 h-4" />
           </button>
         </div>
-        <Button onClick={handleInstallClick} className="w-full mt-4 h-10 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-sm">
-          <Download className="w-4 h-4 mr-2" /> 설치하기
-        </Button>
+        {deferredPrompt ? (
+          <Button onClick={handleInstallClick} className="w-full mt-4 h-10 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-sm">
+            <Download className="w-4 h-4 mr-2" /> 1초 만에 바로 설치하기
+          </Button>
+        ) : (
+          <div className="mt-4 p-3 bg-slate-50 border border-slate-100 rounded-xl text-center">
+            <p className="text-[12px] text-slate-600 font-medium leading-relaxed">
+              브라우저 상/하단 메뉴(⋮ 또는 ≡)를 누르고<br/>
+              <b className="text-slate-800">홈 화면에 추가</b>(또는 앱 설치)를 선택하세요.
+            </p>
+          </div>
+        )}
       </div>
     );
   }
