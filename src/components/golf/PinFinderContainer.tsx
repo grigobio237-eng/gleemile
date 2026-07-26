@@ -15,6 +15,7 @@ export default function PinFinderContainer({ onClose }: Props) {
   const { data: sensorData, hasPermission, requestPermission } = useDeviceSensors();
   const [isFrozen, setIsFrozen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
   
   const [settings, setSettings] = useState<PinSettings>({
     pinHeight: 2.13
@@ -44,9 +45,10 @@ export default function PinFinderContainer({ onClose }: Props) {
       reticleData.bottomY, 
       reticleData.containerHeight, 
       activePitch, 
-      settings
+      settings,
+      zoomLevel
     );
-  }, [hasPermission, reticleData, sensorData.pitch, isFrozen, frozenPitch, settings]);
+  }, [hasPermission, reticleData, sensorData.pitch, isFrozen, frozenPitch, settings, zoomLevel]);
 
   if (hasPermission === false) {
     return (
@@ -109,7 +111,7 @@ export default function PinFinderContainer({ onClose }: Props) {
       <PinHUDDisplay result={result} />
 
       {/* Camera & Freeze Layer */}
-      <PinCameraView isFrozen={isFrozen} onFreezeToggle={toggleFreeze} />
+      <PinCameraView isFrozen={isFrozen} onFreezeToggle={toggleFreeze} zoomLevel={zoomLevel} />
 
       {/* Reticle Overlay Layer (상하단 조준) */}
       <PinReticleOverlay 
@@ -129,6 +131,23 @@ export default function PinFinderContainer({ onClose }: Props) {
         >
           {isFrozen ? '고정 해제하기 (라이브)' : '조준을 위해 화면 고정하기'}
         </button>
+      </div>
+
+      {/* 줌(Zoom) 컨트롤 버튼 */}
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-[110]">
+        {[1, 2, 3].map(level => (
+          <button
+            key={level}
+            onClick={() => setZoomLevel(level)}
+            className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-lg backdrop-blur-md transition-all border ${
+              zoomLevel === level 
+                ? 'bg-amber-500 text-white border-amber-400 scale-110' 
+                : 'bg-black/40 text-white/70 border-white/20 hover:bg-black/60'
+            }`}
+          >
+            {level}x
+          </button>
+        ))}
       </div>
     </div>
   );

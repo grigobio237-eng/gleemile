@@ -15,15 +15,16 @@ export function calculatePinMetrics(
   bottomY: number, 
   containerHeight: number,
   pitchDeg: number,
-  settings: PinSettings
+  settings: PinSettings,
+  zoomLevel: number = 1
 ): PinResult | null {
   const { pinHeight } = settings;
 
-  // 1. 화면 내 깃대 픽셀 높이 비율 (r)
+  // 1. 화면 내 깃대 픽셀 높이 비율 (r) (줌 레벨에 비례하여 픽셀이 커지므로 zoomLevel로 나눠줌)
   const pixelHeight = Math.abs(bottomY - topY);
   if (pixelHeight <= 0 || containerHeight <= 0) return null;
 
-  const r = pixelHeight / containerHeight;
+  const r = (pixelHeight / containerHeight) / zoomLevel;
 
   // 2. 깃대 비례식 기반 직선거리 (D_los)
   // D_los = H_pin / (r * K_fov)

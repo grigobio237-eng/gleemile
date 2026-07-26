@@ -3,9 +3,10 @@ import React, { useRef, useEffect, useState } from 'react';
 interface Props {
   isFrozen: boolean;
   onFreezeToggle: () => void;
+  zoomLevel?: number;
 }
 
-export default function PinCameraView({ isFrozen, onFreezeToggle }: Props) {
+export default function PinCameraView({ isFrozen, onFreezeToggle, zoomLevel = 1 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,12 +66,14 @@ export default function PinCameraView({ isFrozen, onFreezeToggle }: Props) {
             autoPlay
             playsInline
             muted
-            className={`w-full h-full object-cover ${isFrozen ? 'opacity-0' : 'opacity-100'}`}
+            className={`w-full h-full object-cover transition-transform duration-300 ${isFrozen ? 'opacity-0' : 'opacity-100'}`}
+            style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center center' }}
           />
           {/* 정지된 화면을 보여줄 캔버스 */}
           <canvas 
             ref={canvasRef}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${isFrozen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 ${isFrozen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center center' }}
           />
         </>
       )}
