@@ -87,9 +87,6 @@ function SortableModuleItem({ id, module }: { id: string, module: any }) {
     <div 
       ref={setNodeRef} 
       style={style} 
-    <div 
-      ref={setNodeRef} 
-      style={style} 
       className={`w-full flex items-center gap-4 bg-white border rounded-2xl p-4 shadow-sm ${
         isDragging ? 'border-emerald-500 shadow-md ring-1 ring-emerald-500 z-50' : 'border-slate-200 hover:border-emerald-300'
       }`}
