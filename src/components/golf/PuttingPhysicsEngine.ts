@@ -15,15 +15,17 @@ export function calculatePuttingMetrics(
   const { userHeight, greenSpeed } = settings;
 
   // 1. 거리 (D) 연산
-  // pitchDeg가 0이면 정면, 음수면 아래를 보는 상태 (폰 화면이 위를 향하도록 눕히면 pitch는 달라질 수 있으나, 일반적으로 후면 카메라로 땅을 볼 때 기준)
-  // 스마트폰을 세운 상태(0도)에서 바닥(90도)으로 기울일 때를 기준으로 함
-  // 기기마다 방향이 다를 수 있으므로 절대값 혹은 적절한 오프셋 적용 필요. 여기선 간단히 삼각함수로 구현
-  const pitchRad = Math.abs(pitchDeg) * (Math.PI / 180);
+  // 스마트폰을 세워서 들고 있을 때 pitch(beta)는 90도입니다.
+  // 땅(홀컵)을 향해 폰을 기울이면 pitch가 90도에서 180도(또는 0도)로 변합니다.
+  // 지면을 향한 하향 각도(depression angle) = |pitch - 90|
+  const depressionAngleDeg = Math.abs(pitchDeg - 90);
+  const depressionAngleRad = depressionAngleDeg * (Math.PI / 180);
   
-  // H * tan(pitch) -> 공이 있는 곳에서 홀컵까지의 수평 거리
-  // 단, 스마트폰을 내리꽂듯이 볼 때 각도가 너무 작으면 무한대가 되므로 최소 각도 제한
-  const safePitch = Math.max(pitchRad, 0.01);
-  const rawDistance = userHeight * Math.tan(safePitch);
+  // 너무 작거나 큰 각도 예외 처리 (0도면 무한대이므로 최소 1도 보장)
+  const safeDepressionRad = Math.max(depressionAngleRad, 0.017); 
+  
+  // 높이 h에서 하향 각도 theta로 바닥을 볼 때 수평 거리는 d = h / tan(theta)
+  const rawDistance = userHeight / Math.tan(safeDepressionRad);
 
   // 2. 고저차 (E) 연산
   // 이 예제에서는 단순화를 위해 기기가 향하는 방향과 수평 센서(roll/pitch) 조합에서 고저차 추정은 제한적일 수 있으나,

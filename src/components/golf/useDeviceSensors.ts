@@ -31,12 +31,13 @@ export function useDeviceSensors() {
   }, []);
 
   const resetZero = useCallback(() => {
-    // 현재 기울기를 영점으로 설정
+    // 거리 계산에 필수적인 절대 각도(pitch)는 영점을 잡으면 안 됨 (항상 중력 기준이어야 함)
+    // 좌우 기울기(roll)만 영점 조절을 허용합니다.
     setZeroOffset({
-      pitch: data.pitch + zeroOffset.pitch,
+      pitch: 0, 
       roll: data.roll + zeroOffset.roll
     });
-  }, [data, zeroOffset]);
+  }, [data.roll, zeroOffset.roll]);
 
   useEffect(() => {
     // requestPermission API를 지원하지 않는 기기(안드로이드 등)는 권한 요청 없이 바로 true 설정
@@ -57,9 +58,9 @@ export function useDeviceSensors() {
       let rawPitch = event.beta || 0;
       let rawRoll = event.gamma || 0;
 
-      // 영점 오프셋을 적용한 값
+      // 영점 오프셋을 적용한 값 (pitch는 절대값 유지, roll만 보정)
       setData({
-        pitch: rawPitch - zeroOffset.pitch,
+        pitch: rawPitch,
         roll: rawRoll - zeroOffset.roll
       });
     };

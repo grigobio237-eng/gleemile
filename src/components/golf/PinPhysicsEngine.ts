@@ -31,13 +31,17 @@ export function calculatePinMetrics(
   const straightDistance = pinHeight / (r * K_FOV);
 
   // 3. 기울기 센서 기반 고저차 (Elevation) 및 수평거리 (D_flat)
-  const pitchRad = pitchDeg * (Math.PI / 180);
+  // 스마트폰을 세워서 들고 있을 때 pitch(beta)는 90도입니다. (수평)
+  // 카메라가 위를 향하면 pitch < 90, 아래를 향하면 pitch > 90이 됩니다.
+  // 상향각(elevation angle) = 90 - pitch
+  const elevationAngleDeg = 90 - pitchDeg;
+  const elevationAngleRad = elevationAngleDeg * (Math.PI / 180);
   
-  // 피치 각도에 따른 고저차: D_los * sin(pitch)
-  const elevation = straightDistance * Math.sin(pitchRad);
+  // 피치 상향각에 따른 고저차: D_los * sin(elevationAngle)
+  const elevation = straightDistance * Math.sin(elevationAngleRad);
   
-  // 수평거리: D_los * cos(pitch)
-  const flatDistance = straightDistance * Math.cos(pitchRad);
+  // 수평거리: D_los * cos(elevationAngle)
+  const flatDistance = straightDistance * Math.cos(elevationAngleRad);
 
   // 4. 슬로프 보정 거리 (D_adj)
   // k_club 계수: 오르막 1.0, 내리막 0.8
