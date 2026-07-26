@@ -214,6 +214,27 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
   // ==========================================
   // UI 렌더링 헬퍼 함수
   // ==========================================
+  const renderMessageContent = (content: string, isMe: boolean) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = content.split(urlRegex);
+    return parts.map((part, i) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`underline hover:opacity-80 transition-opacity ${isMe ? 'text-indigo-200' : 'text-indigo-600'}`}
+          >
+            {part}
+          </a>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
   const formatTime = (timestampMs: number) => {
     const date = new Date(timestampMs);
     return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
@@ -308,7 +329,9 @@ export function TeamChatRoom({ teamId, currentUserId, currentUserRole = 'member'
                     : 'bg-white text-obsidian border border-slate-100 rounded-[20px] rounded-tl-sm'
                 }`}>
                   {msg.content && (
-                    <p className="text-[13px] whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    <p className="text-[13px] whitespace-pre-wrap leading-relaxed">
+                      {renderMessageContent(msg.content, isMe)}
+                    </p>
                   )}
                   
                   {/* 미디어 프리뷰 */}
