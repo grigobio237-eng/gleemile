@@ -61,9 +61,23 @@ export const openExternalBrowser = (targetUrl: string) => {
   const isSamsungBrowser = /SamsungBrowser\//i.test(userAgent);
 
   if (isAndroid && !isRealChrome && !isSamsungBrowser) {
-    // 진짜 인앱브라우저(카카오, 네이버 등): Chrome Intent 스킴으로 강제 오픈
     const urlWithoutProtocol = targetUrl.replace(/^https?:\/\//, '');
-    const intentUrl = `intent://${urlWithoutProtocol}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(targetUrl)};end`;
+    
+    // 1. 카카오톡 전용 스킴 (가장 확실함)
+    if (/KAKAOTALK/i.test(userAgent)) {
+      window.location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(targetUrl)}`;
+      return;
+    }
+    
+    // 2. 네이버 전용 스킴 (앱 닫고 외부 브라우저 띄우기)
+    if (/NAVER/i.test(userAgent)) {
+      window.location.href = `naversearchapp://inappbrowser/close?url=${encodeURIComponent(targetUrl)}`;
+      return;
+    }
+
+    // 3. 기타 인앱브라우저 (Google App, 라인 등)
+    // Chrome 패키지를 강제하지 않고 기기의 기본 브라우저를 띄울 수 있도록 일반 Intent 사용
+    const intentUrl = `intent://${urlWithoutProtocol}#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end;`;
 
     try {
       window.location.href = intentUrl;

@@ -7,6 +7,7 @@ import Image from 'next/image';
 export function InAppBrowserGuard() {
   const [isMounted, setIsMounted] = useState(false);
   const [showIosOverlay, setShowIosOverlay] = useState(false);
+  const [isIosState, setIsIosState] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -15,6 +16,7 @@ export function InAppBrowserGuard() {
       const userAgent = (window.navigator?.userAgent || '').toLowerCase();
       const isAndroid = /android/i.test(userAgent);
       const isIos = /iphone|ipad|ipod/i.test(userAgent);
+      setIsIosState(isIos);
 
       if (isAndroid) {
         // Android: 바로 강제 전환하지 않고 오버레이를 보여줍니다 (크롬 미설치 유저 대비)
@@ -53,7 +55,9 @@ export function InAppBrowserGuard() {
         </h2>
         <p className="text-slate-600 font-medium leading-relaxed mb-10 max-w-xs mx-auto">
           더 원활한 소통과 소중한 기록 보존을 위해 <br/>
-          <b className="text-emerald-600">사파리(Safari) 브라우저</b>로 이어드릴게요.
+          <b className="text-emerald-600">
+            {isIosState ? '사파리(Safari)' : '기본 시스템'} 브라우저
+          </b>로 이어드릴게요.
         </p>
         
         {/* 하단/상단 버튼 유도 UI */}
