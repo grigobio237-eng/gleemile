@@ -17,13 +17,13 @@ export function InAppBrowserGuard() {
       const isIos = /iphone|ipad|ipod/i.test(userAgent);
 
       if (isAndroid) {
-        // Android: 0.1초 내외 즉각적인 intent 전환
-        openExternalBrowser(window.location.href);
+        // Android: 바로 강제 전환하지 않고 오버레이를 보여줍니다 (크롬 미설치 유저 대비)
+        setShowIosOverlay(true);
       } else if (isIos) {
         // iOS: 강제 전환 불가로 인한 안내 오버레이 활성화
         setShowIosOverlay(true);
       } else {
-        // 기타 환경 대비용 오버레이 활성화 (카카오 데스크톱 등)
+        // 기타 환경 대비용 오버레이 활성화
         setShowIosOverlay(true);
       }
     }
@@ -57,16 +57,24 @@ export function InAppBrowserGuard() {
         </p>
         
         {/* 하단/상단 버튼 유도 UI */}
-        <div className="bg-white/80 backdrop-blur-sm px-6 py-5 rounded-2xl shadow-sm border border-orange-100/50 w-full max-w-sm flex flex-col items-center gap-3">
-          <p className="text-sm text-slate-700 font-bold">
-            오른쪽 아래(또는 위) 탭에서
-          </p>
-          <div className="flex items-center justify-center gap-2 text-slate-500">
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 shadow-inner">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
-            </span>
-            <span className="font-semibold text-slate-800 mx-1">사파리로 열기</span>
-            <span>를 선택해 주세요</span>
+        <div className="bg-white/80 backdrop-blur-sm px-6 py-5 rounded-2xl shadow-sm border border-orange-100/50 w-full max-w-sm flex flex-col items-center gap-4">
+          <button 
+            onClick={() => {
+              if (typeof window !== 'undefined') openExternalBrowser(window.location.href);
+            }}
+            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-colors"
+          >
+            기본 브라우저로 열기 (추천)
+          </button>
+          
+          <div className="w-full border-t border-slate-100 pt-3">
+            <p className="text-xs text-slate-500 font-medium mb-2">
+              버튼이 작동하지 않는다면:
+            </p>
+            <div className="flex items-center justify-center gap-2 text-slate-600 text-sm">
+              <span className="font-bold text-slate-800">우측 상단/하단 메뉴(⋮)</span>에서
+              <span className="font-semibold text-emerald-600">다른 브라우저로 열기</span>
+            </div>
           </div>
         </div>
       </div>
