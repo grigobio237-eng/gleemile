@@ -14,7 +14,8 @@ import {
   Activity, PenTool, LayoutTemplate, Users, ShieldAlert,
   GraduationCap, BookOpen, ThumbsUp, Timer, CalendarCheck,
   Target, KanbanSquare, RefreshCw, ActivitySquare, ClipboardList,
-  Flame, Image, FileVideo, Scale, Crown, ChevronDown, UserCircle2, Flag
+  Flame, Image, FileVideo, Scale, Crown, ChevronDown, UserCircle2, Flag,
+  GripHorizontal
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
