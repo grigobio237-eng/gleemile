@@ -66,7 +66,8 @@ export async function sendPushNotification(
       notification: { title, body },
       data: {
         url: urlData || `/mile/team/${teamId}`,
-        teamId: teamId
+        teamId: teamId,
+        badge: "1" // 모바일 바탕화면 아이콘의 풍선알람(뱃지) 활성화를 위한 데이터
       },
       tokens: tokens // sendMulticast는 최대 500개까지 지원
     };

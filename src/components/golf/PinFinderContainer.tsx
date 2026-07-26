@@ -116,6 +116,20 @@ export default function PinFinderContainer({ onClose }: Props) {
         isFrozen={isFrozen} 
         onReticleChange={(topY, bottomY, h) => setReticleData({ topY, bottomY, containerHeight: h })} 
       />
+
+      {/* 화면 고정 버튼 (Freeze Toggle) - z-index 최상위 배치 */}
+      <div className="absolute bottom-32 inset-x-0 flex justify-center z-[110]">
+        <button
+          onClick={toggleFreeze}
+          className={`px-6 py-3 rounded-full font-bold text-sm shadow-xl backdrop-blur-md transition-all border ${
+            isFrozen 
+              ? 'bg-amber-500 text-white border-amber-400' 
+              : 'bg-white/20 text-white border-white/40 hover:bg-white/30'
+          }`}
+        >
+          {isFrozen ? '고정 해제하기 (라이브)' : '조준을 위해 화면 고정하기'}
+        </button>
+      </div>
     </div>
   );
 }

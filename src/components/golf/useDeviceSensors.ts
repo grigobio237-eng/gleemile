@@ -39,6 +39,17 @@ export function useDeviceSensors() {
   }, [data, zeroOffset]);
 
   useEffect(() => {
+    // requestPermission API를 지원하지 않는 기기(안드로이드 등)는 권한 요청 없이 바로 true 설정
+    if (hasPermission === null) {
+      if (typeof (window as any).DeviceOrientationEvent?.requestPermission !== 'function') {
+        setHasPermission(true);
+      } else {
+        // iOS 13+ 기기는 사용자의 명시적인 버튼 클릭(제스처)이 필요하므로 false로 시작하여 UI 유도
+        setHasPermission(false);
+      }
+      return;
+    }
+
     if (!hasPermission) return;
 
     const handleOrientation = (event: DeviceOrientationEvent) => {

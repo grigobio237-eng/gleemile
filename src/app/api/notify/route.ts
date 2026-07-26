@@ -50,6 +50,7 @@ export async function POST(req: Request) {
       data: {
         url: url || '/',
         click_action: url || '/',
+        badge: "1" // 앱 바탕화면 아이콘 뱃지(알람 수) 활성화
       },
       tokens: [...new Set(tokens)], // 중복 제거
     };
