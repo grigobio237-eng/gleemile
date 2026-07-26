@@ -58,11 +58,11 @@ function SortableItem({ id, children, isManager }: { id: string, children: React
     <div ref={setNodeRef} style={style} className="relative w-full">
       {isManager && (
         <div 
-          className="absolute top-2 right-2 z-20 p-2 bg-white/60 hover:bg-white backdrop-blur-sm rounded-full shadow-sm border border-slate-100 cursor-grab active:cursor-grabbing transition-colors"
+          className="absolute top-2 right-2 z-20 p-2 bg-white/60 hover:bg-white backdrop-blur-sm rounded-full shadow-sm border border-slate-100 cursor-grab active:cursor-grabbing transition-colors touch-none"
           {...attributes} 
           {...listeners}
         >
-          <GripHorizontal className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+          <GripHorizontal className="w-4 h-4 text-slate-400 hover:text-slate-600 pointer-events-none" />
         </div>
       )}
       {children}

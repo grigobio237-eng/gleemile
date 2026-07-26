@@ -20,6 +20,9 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const AVAILABLE_MODULES = [
   // 공통
@@ -69,6 +72,33 @@ const ROLE_OPTIONS: { value: TeamRole; label: string; color: string; bg: string 
   { value: 'guest', label: '참관인', color: 'text-slate-600', bg: 'bg-slate-50 border-slate-200' },
 ];
 
+function SortableModuleItem({ id, module }: { id: string, module: any }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 'auto',
+    opacity: isDragging ? 0.8 : 1,
+  };
+  const Icon = module.icon;
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className="flex-shrink-0 flex items-center gap-2 bg-white border border-emerald-200 rounded-xl px-3 py-2 shadow-sm w-[160px] cursor-grab active:cursor-grabbing touch-none snap-center"
+      {...attributes}
+      {...listeners}
+    >
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${module.bg}`}>
+        <Icon className={`w-4 h-4 ${module.color}`} />
+      </div>
+      <span className="text-xs font-bold text-slate-700 truncate select-none">{module.label}</span>
+      <GripHorizontal className="w-4 h-4 text-slate-300 ml-auto shrink-0 pointer-events-none" />
+    </div>
+  );
+}
+
 export default function TeamSetupPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -80,7 +110,7 @@ export default function TeamSetupPage() {
   const [teamDescription, setTeamDescription] = useState('');
   const [teamTemplate, setTeamTemplate] = useState('common');
   const [teamIcon, setTeamIcon] = useState<string>('');
-  const [selectedModules, setSelectedModules] = useState<Record<string, boolean>>({});
+  const [enabledModules, setEnabledModules] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   
   const [iconUploading, setIconUploading] = useState(false);
@@ -143,18 +173,11 @@ export default function TeamSetupPage() {
 
         if (data.enabledModules && data.enabledModules.length > 0) {
           // If already has modules set
-          const mods: Record<string, boolean> = {};
-          data.enabledModules.forEach((m: string) => mods[m] = true);
-          setSelectedModules(mods);
+          setEnabledModules(data.enabledModules);
         } else {
           // Default selection: common + template specific
-          const defaults: Record<string, boolean> = {};
-          AVAILABLE_MODULES.forEach(m => {
-            if (m.category === 'common' || m.category === template) {
-              defaults[m.id] = true;
-            }
-          });
-          setSelectedModules(defaults);
+          const defaults = AVAILABLE_MODULES.filter(m => m.category === 'common' || m.category === template).map(m => m.id);
+          setEnabledModules(defaults);
         }
       }
     } catch (e) {
@@ -192,20 +215,38 @@ export default function TeamSetupPage() {
   };
 
   const handleToggle = (moduleId: string, checked: boolean) => {
-    setSelectedModules(prev => ({
-      ...prev,
-      [moduleId]: checked
-    }));
+    setEnabledModules(prev => {
+      if (checked && !prev.includes(moduleId)) {
+        return [...prev, moduleId];
+      } else if (!checked) {
+        return prev.filter(id => id !== moduleId);
+      }
+      return prev;
+    });
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = enabledModules.indexOf(active.id as string);
+      const newIndex = enabledModules.indexOf(over.id as string);
+      setEnabledModules(arrayMove(enabledModules, oldIndex, newIndex));
+    }
   };
 
   const handleComplete = async () => {
     if (!teamId) return;
     try {
       setSaving(true);
-      const enabled = Object.keys(selectedModules).filter(k => selectedModules[k]);
       const teamRef = doc(db, 'teams', teamId);
       await updateDoc(teamRef, {
-        enabledModules: enabled,
+        enabledModules: enabledModules,
         description: teamDescription,
         teamIcon: teamIcon,
         updatedAt: new Date()
@@ -228,7 +269,7 @@ export default function TeamSetupPage() {
     });
   }, [searchQuery, activeTab]);
 
-  const activeCount = Object.values(selectedModules).filter(Boolean).length;
+  const activeCount = enabledModules.length;
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -501,6 +542,26 @@ export default function TeamSetupPage() {
           </section>
         )}
 
+        {/* Selected Modules Reorder Section */}
+        {enabledModules.length > 0 && (
+          <section className="bg-emerald-50/50 rounded-3xl p-6 shadow-sm border border-emerald-100">
+            <h2 className="text-lg font-black text-slate-800 mb-1">조립된 대시보드 모듈 순서</h2>
+            <p className="text-xs text-slate-500 font-medium mb-4">아래 블록을 좌우로 드래그하여 대시보드에 표시될 순서를 변경하세요.</p>
+            
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <div className="flex gap-2 overflow-x-auto pb-4 pt-2 px-2 -mx-2 snap-x scrollbar-hide">
+                <SortableContext items={enabledModules} strategy={horizontalListSortingStrategy}>
+                  {enabledModules.map(id => {
+                    const module = AVAILABLE_MODULES.find(m => m.id === id);
+                    if (!module) return null;
+                    return <SortableModuleItem key={id} id={id} module={module} />;
+                  })}
+                </SortableContext>
+              </div>
+            </DndContext>
+          </section>
+        )}
+
         {/* Search & Filter */}
         <div className="space-y-4">
           <div className="relative">
@@ -539,7 +600,7 @@ export default function TeamSetupPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredModules.map(module => {
               const Icon = module.icon;
-              const isChecked = selectedModules[module.id] || false;
+              const isChecked = enabledModules.includes(module.id);
               
               return (
                 <div 
