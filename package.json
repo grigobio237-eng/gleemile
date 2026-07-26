@@ -4,10 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/build.js",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "build:vercel": "next build",
     "seed:coupons": "tsx scripts/create-demo-coupons.ts",
     "postinstall": "npm cache clean --force",
     "test": "jest",
