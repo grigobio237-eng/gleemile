@@ -22,7 +22,7 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 const AVAILABLE_MODULES = [
@@ -87,20 +87,26 @@ function SortableModuleItem({ id, module }: { id: string, module: any }) {
     <div 
       ref={setNodeRef} 
       style={style} 
-      className={`flex-shrink-0 flex items-center gap-2 bg-white border rounded-xl px-3 py-2 shadow-sm w-[160px] snap-center ${
-        isDragging ? 'border-emerald-500 shadow-md ring-1 ring-emerald-500' : 'border-emerald-200'
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className={`w-full flex items-center gap-4 bg-white border rounded-2xl p-4 shadow-sm ${
+        isDragging ? 'border-emerald-500 shadow-md ring-1 ring-emerald-500 z-50' : 'border-slate-200 hover:border-emerald-300'
       }`}
     >
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${module.bg}`}>
-        <Icon className={`w-4 h-4 ${module.color}`} />
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${module.bg}`}>
+        <Icon className={`w-6 h-6 ${module.color}`} />
       </div>
-      <span className="text-xs font-bold text-slate-700 truncate select-none">{module.label}</span>
+      <div className="flex-1 min-w-0">
+        <span className="text-base font-bold text-slate-800 block truncate">{module.label}</span>
+        <span className="text-xs font-medium text-slate-500 block truncate mt-0.5">{module.description}</span>
+      </div>
       <div 
-        className="ml-auto shrink-0 p-1 cursor-grab active:cursor-grabbing touch-none flex items-center justify-center rounded-md hover:bg-slate-50"
+        className="ml-auto shrink-0 p-3 cursor-grab active:cursor-grabbing touch-none flex items-center justify-center rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-colors"
         {...attributes}
         {...listeners}
       >
-        <GripHorizontal className="w-4 h-4 text-slate-400 pointer-events-none" />
+        <GripHorizontal className="w-6 h-6 text-slate-400 pointer-events-none" />
       </div>
     </div>
   );
@@ -125,6 +131,7 @@ export default function TeamSetupPage() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [dashboardSetupTab, setDashboardSetupTab] = useState<'select' | 'reorder'>('select');
 
   // 👑 회원 등급 관리 상태
   const [isOwner, setIsOwner] = useState(false);
@@ -549,107 +556,157 @@ export default function TeamSetupPage() {
           </section>
         )}
 
-        {/* Selected Modules Reorder Section */}
-        {enabledModules.length > 0 && (
-          <section className="bg-emerald-50/50 rounded-3xl p-6 shadow-sm border border-emerald-100">
-            <h2 className="text-lg font-black text-slate-800 mb-1">조립된 대시보드 모듈 순서</h2>
-            <p className="text-xs text-slate-500 font-medium mb-4">아래 블록을 좌우로 드래그하여 대시보드에 표시될 순서를 변경하세요.</p>
-            
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <div className="flex gap-2 overflow-x-auto pb-4 pt-2 px-2 -mx-2 snap-x scrollbar-hide">
-                <SortableContext items={enabledModules} strategy={horizontalListSortingStrategy}>
-                  {enabledModules.map(id => {
-                    const module = AVAILABLE_MODULES.find(m => m.id === id);
-                    if (!module) return null;
-                    return <SortableModuleItem key={id} id={id} module={module} />;
-                  })}
-                </SortableContext>
-              </div>
-            </DndContext>
-          </section>
-        )}
-
-        {/* Search & Filter */}
-        <div className="space-y-4">
-          <div className="relative">
-            <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-            <Input 
-              placeholder="모듈 이름이나 기능을 검색해 보세요..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 h-14 bg-white border-slate-200 rounded-2xl shadow-sm text-base focus-visible:ring-emerald-500"
-            />
+        {/* Dashboard Configuration Tabs Section */}
+        <section className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
+              <LayoutTemplate className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-slate-800">대시보드 모듈 설정</h2>
+              <p className="text-xs text-slate-500 font-medium">필요한 모듈을 선택하고 원하는 순서로 배치하세요.</p>
+            </div>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {CATEGORY_TABS.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all border ${
-                  activeTab === tab.id
-                    ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
-                    : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          {/* Setup Tabs */}
+          <div className="flex bg-slate-100/80 p-1 rounded-2xl mb-8">
+            <button
+              onClick={() => setDashboardSetupTab('select')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
+                dashboardSetupTab === 'select'
+                  ? 'bg-white text-emerald-700 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <ActivitySquare className="w-4 h-4" />
+              모듈 선택 ({enabledModules.length})
+            </button>
+            <button
+              onClick={() => setDashboardSetupTab('reorder')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
+                dashboardSetupTab === 'reorder'
+                  ? 'bg-white text-emerald-700 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <GripHorizontal className="w-4 h-4" />
+              모듈 배치
+            </button>
           </div>
-        </div>
 
-        {/* Modules Grid */}
-        {filteredModules.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-slate-400 font-bold">검색 결과가 없습니다.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredModules.map(module => {
-              const Icon = module.icon;
-              const isChecked = enabledModules.includes(module.id);
-              
-              return (
-                <div 
-                  key={module.id} 
-                  className={`p-5 rounded-2xl border transition-all duration-300 flex items-center justify-between cursor-pointer ${
-                    isChecked 
-                      ? 'bg-white border-emerald-500 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-500' 
-                      : 'bg-white border-slate-200 hover:border-emerald-300 hover:shadow-sm'
-                  }`}
-                  onClick={() => handleToggle(module.id, !isChecked)}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${module.bg}`}>
-                      <Icon className={`w-6 h-6 ${module.color}`} />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100 px-1.5 py-0.5 rounded-sm">
-                          {module.category}
-                        </span>
-                        <h3 className="text-base font-bold text-slate-800">
-                          {module.label}
-                        </h3>
-                      </div>
-                      <p className="text-xs text-slate-500 font-medium">
-                        {module.description}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <Switch 
-                      checked={isChecked}
-                      onCheckedChange={(checked) => handleToggle(module.id, checked)}
-                      className="data-[state=checked]:bg-emerald-500"
-                    />
-                  </div>
+          {dashboardSetupTab === 'select' && (
+            <div className="animate-in fade-in duration-300">
+              {/* Search & Filter */}
+              <div className="space-y-4 mb-6">
+                <div className="relative">
+                  <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Input 
+                    placeholder="모듈 이름이나 기능을 검색해 보세요..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-12 h-14 bg-white border-slate-200 rounded-2xl shadow-sm text-base focus-visible:ring-emerald-500"
+                  />
                 </div>
-              );
-            })}
-          </div>
-        )}
+
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  {CATEGORY_TABS.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all border ${
+                        activeTab === tab.id
+                          ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
+                          : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Modules Grid */}
+              {filteredModules.length === 0 ? (
+                <div className="text-center py-20 bg-slate-50 rounded-2xl border border-slate-100">
+                  <p className="text-slate-400 font-bold">검색 결과가 없습니다.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredModules.map(module => {
+                    const Icon = module.icon;
+                    const isChecked = enabledModules.includes(module.id);
+                    
+                    return (
+                      <div 
+                        key={module.id} 
+                        className={`p-5 rounded-2xl border transition-all duration-300 flex items-center justify-between cursor-pointer ${
+                          isChecked 
+                            ? 'bg-white border-emerald-500 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-500' 
+                            : 'bg-white border-slate-200 hover:border-emerald-300 hover:shadow-sm'
+                        }`}
+                        onClick={() => handleToggle(module.id, !isChecked)}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${module.bg}`}>
+                            <Icon className={`w-6 h-6 ${module.color}`} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100 px-1.5 py-0.5 rounded-sm">
+                                {module.category}
+                              </span>
+                              <h3 className="text-base font-bold text-slate-800">
+                                {module.label}
+                              </h3>
+                            </div>
+                            <p className="text-xs text-slate-500 font-medium line-clamp-1">
+                              {module.description}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Switch 
+                            checked={isChecked}
+                            onCheckedChange={(checked) => handleToggle(module.id, checked)}
+                            className="data-[state=checked]:bg-emerald-500 shrink-0 ml-2"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {dashboardSetupTab === 'reorder' && (
+            <div className="animate-in fade-in duration-300">
+              {enabledModules.length === 0 ? (
+                <div className="text-center py-20 bg-slate-50 rounded-2xl border border-slate-100">
+                  <LayoutTemplate className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-500 font-bold mb-1">선택된 모듈이 없습니다.</p>
+                  <p className="text-slate-400 text-sm">모듈 선택 탭에서 사용할 기능을 추가해 주세요.</p>
+                </div>
+              ) : (
+                <div className="bg-slate-50/50 rounded-2xl p-4 sm:p-6 border border-slate-100">
+                  <p className="text-xs text-slate-500 font-medium mb-4 text-center">블록의 우측 손잡이를 잡고 위아래로 드래그하여 순서를 변경하세요.</p>
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <div className="flex flex-col gap-3">
+                      <SortableContext items={enabledModules} strategy={verticalListSortingStrategy}>
+                        {enabledModules.map(id => {
+                          const module = AVAILABLE_MODULES.find(m => m.id === id);
+                          if (!module) return null;
+                          return <SortableModuleItem key={id} id={id} module={module} />;
+                        })}
+                      </SortableContext>
+                    </div>
+                  </DndContext>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
 
         {/* Submit */}
         <div className="pt-8 pb-10">
