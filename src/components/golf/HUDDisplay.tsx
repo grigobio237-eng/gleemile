@@ -4,9 +4,10 @@ import { Target, ArrowRight, ArrowLeft, ArrowUp } from 'lucide-react';
 
 interface Props {
   result: PuttingResult | null;
+  roll?: number | null;
 }
 
-export default function HUDDisplay({ result }: Props) {
+export default function HUDDisplay({ result, roll }: Props) {
   return (
     <div className="absolute inset-x-0 bottom-0 z-20 p-4 pb-24 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col justify-end">
       {/* Main HUD Card */}
@@ -23,13 +24,13 @@ export default function HUDDisplay({ result }: Props) {
               </div>
             </div>
             
-            <div className="text-right flex flex-col items-end">
-              <span className="text-xs text-white/50 bg-black/30 px-2.5 py-1.5 rounded-lg font-medium">
-                직선 {result.rawDistance}m
+            <div className="text-right flex flex-col items-end gap-1">
+              <span className="text-xs text-white/80 bg-black/40 px-2.5 py-1.5 rounded-lg font-medium">
+                수평거리 {result.rawDistance}m
               </span>
-              {result.elevation !== 0 && (
-                <span className={`text-xs mt-1.5 px-2.5 py-1.5 rounded-lg font-bold shadow-sm ${result.elevation > 0 ? 'text-rose-400 bg-rose-500/20 border border-rose-500/30' : 'text-blue-400 bg-blue-500/20 border border-blue-500/30'}`}>
-                  {result.elevation > 0 ? '오르막' : '내리막'} {result.elevation > 0 ? '+' : ''}{result.elevation}cm
+              {roll !== undefined && roll !== null && (
+                <span className="text-xs text-amber-200 bg-amber-500/20 border border-amber-500/30 px-2.5 py-1.5 rounded-lg font-bold shadow-sm">
+                  경사각 {Math.abs(roll).toFixed(1)}°
                 </span>
               )}
             </div>
@@ -58,14 +59,14 @@ export default function HUDDisplay({ result }: Props) {
                 )}
               </div>
               {result.aimDirection !== 'STRAIGHT' && (
-                <div className="text-xs text-white/50 mt-1 font-medium">({result.aimCm}cm)</div>
+                <div className="text-xs text-white/50 mt-1 font-medium">({result.aimCm}cm) 퍼팅</div>
               )}
             </div>
           </div>
         </div>
       ) : (
         <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 text-white text-center shadow-2xl pointer-events-auto">
-          <p className="text-sm font-medium">지면과 홀컵을 향해 비춰주세요...</p>
+          <p className="text-sm font-medium">지면 경사에 맞춰 폰을 기울이고, 돋보기 안에서 홀컵 좌우 폭을 맞춰주세요.</p>
         </div>
       )}
     </div>

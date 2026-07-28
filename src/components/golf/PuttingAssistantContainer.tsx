@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import PinCameraView from './PinCameraView';
-import ARCanvasOverlay from './ARCanvasOverlay';
+import PuttingReticleOverlay from './PuttingReticleOverlay';
 import HUDDisplay from './HUDDisplay';
 import { useDeviceSensors } from './useDeviceSensors';
 import { calculatePuttingMetrics } from './PuttingPhysicsEngine';
@@ -14,7 +14,7 @@ interface Props {
 export default function PuttingAssistantContainer({ onClose }: Props) {
   const { data: sensorData, hasPermission, requestPermission, resetZero } = useDeviceSensors();
   const [settings, setSettings] = useState<PuttingSettings>({
-    userHeight: 1.6,
+    userHeight: 1.6, // 이제 거리 계산에는 쓰이지 않지만 인터페이스 호환을 위해 유지
     greenSpeed: 2.5
   });
   
@@ -25,6 +25,14 @@ export default function PuttingAssistantContainer({ onClose }: Props) {
   const [frozenPitch, setFrozenPitch] = useState<number | null>(null);
   const [frozenRoll, setFrozenRoll] = useState<number | null>(null);
 
+  // 줌 레벨 상태 관리
+  const [zoomLevel, setZoomLevel] = useState(1);
+
+  // 레티클 (조준선) 상태 관리
+  const [leftX, setLeftX] = useState(0);
+  const [rightX, setRightX] = useState(0);
+  const [containerWidth, setContainerWidth] = useState(0);
+
   const toggleFreeze = () => {
     if (!isFrozen) {
       setFrozenPitch(sensorData.pitch);
@@ -33,14 +41,27 @@ export default function PuttingAssistantContainer({ onClose }: Props) {
     setIsFrozen(!isFrozen);
   };
 
+  const handleReticleChange = useCallback((l: number, r: number, w: number) => {
+    setLeftX(l);
+    setRightX(r);
+    setContainerWidth(w);
+  }, []);
+
   // 센서 데이터 기반 실시간(또는 고정) 퍼팅 수치 계산
   const result: PuttingResult | null = useMemo(() => {
-    if (!hasPermission) return null;
-    const activePitch = (isFrozen && frozenPitch !== null) ? frozenPitch : sensorData.pitch;
+    if (!hasPermission || containerWidth === 0) return null;
+    
     const activeRoll = (isFrozen && frozenRoll !== null) ? frozenRoll : sensorData.roll;
     
-    return calculatePuttingMetrics(activePitch, activeRoll, settings);
-  }, [sensorData.pitch, sensorData.roll, settings, hasPermission, isFrozen, frozenPitch, frozenRoll]);
+    return calculatePuttingMetrics(
+      leftX, 
+      rightX, 
+      containerWidth, 
+      activeRoll, 
+      settings,
+      zoomLevel
+    );
+  }, [hasPermission, containerWidth, isFrozen, frozenRoll, sensorData.roll, leftX, rightX, settings, zoomLevel]);
 
   if (hasPermission === false) {
     return (
@@ -59,10 +80,6 @@ export default function PuttingAssistantContainer({ onClose }: Props) {
       </div>
     );
   }
-
-  // 렌더링에 사용할 AR Canvas용 피치/롤
-  const activePitch = (isFrozen && frozenPitch !== null) ? frozenPitch : sensorData.pitch;
-  const activeRoll = (isFrozen && frozenRoll !== null) ? frozenRoll : sensorData.roll;
 
   return (
     <div className="fixed inset-0 z-[100] bg-black overflow-hidden touch-none">
@@ -88,16 +105,6 @@ export default function PuttingAssistantContainer({ onClose }: Props) {
           <h3 className="text-white font-bold mb-3 text-sm">환경 설정</h3>
           <div className="space-y-4">
             <div>
-              <label className="text-xs text-white/70 block mb-1">눈높이 (m)</label>
-              <input 
-                type="number" 
-                step="0.05"
-                value={settings.userHeight}
-                onChange={(e) => setSettings(prev => ({ ...prev, userHeight: Number(e.target.value) }))}
-                className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-1.5 text-white text-sm outline-none focus:border-emerald-500 transition-colors"
-              />
-            </div>
-            <div>
               <label className="text-xs text-white/70 block mb-1">그린 스피드</label>
               <select 
                 value={settings.greenSpeed}
@@ -119,7 +126,7 @@ export default function PuttingAssistantContainer({ onClose }: Props) {
                 }}
                 className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-2 rounded-lg border border-white/20 transition-colors"
               >
-                <RotateCcw className="w-3 h-3" /> 센서 영점 리셋
+                <RotateCcw className="w-3 h-3" /> 자이로 영점 리셋 (평지)
               </button>
             </div>
           </div>
@@ -127,11 +134,18 @@ export default function PuttingAssistantContainer({ onClose }: Props) {
       )}
 
       {/* Main Layers */}
-      <PinCameraView isFrozen={isFrozen} onFreezeToggle={toggleFreeze} />
-      <ARCanvasOverlay pitch={activePitch} roll={activeRoll} />
+      <PinCameraView 
+        isFrozen={isFrozen} 
+        onFreezeToggle={toggleFreeze} 
+        onZoomChange={setZoomLevel}
+      />
+      <PuttingReticleOverlay 
+        isFrozen={isFrozen} 
+        onReticleChange={handleReticleChange} 
+      />
       
       <div className={`transition-opacity duration-300 ${showSettings ? 'opacity-30' : 'opacity-100'}`}>
-        <HUDDisplay result={result} />
+        <HUDDisplay result={result} roll={isFrozen && frozenRoll !== null ? frozenRoll : sensorData.roll} />
       </div>
 
       {/* 화면 고정 버튼 (Freeze Toggle) - 최상단 배치 */}
