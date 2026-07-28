@@ -28,8 +28,8 @@ export default function PinHUDDisplay({ result }: Props) {
 
         <div className="mt-4 pt-3 border-t border-white/10 flex justify-between text-sm">
           <div className="flex flex-col items-center">
-            <span className="text-xs text-white/50 font-bold uppercase tracking-wider mb-1">직선거리</span>
-            <span className="font-medium bg-black/30 px-3 py-1 rounded-lg">{result.straightDistance.toFixed(0)} m</span>
+            <span className="text-xs text-white/50 font-bold uppercase tracking-wider mb-1">수평거리</span>
+            <span className="font-medium bg-black/30 px-3 py-1 rounded-lg">{result.horizontalDistance.toFixed(0)} m</span>
           </div>
           <div className="w-px bg-white/10" />
           <div className="flex flex-col items-center">

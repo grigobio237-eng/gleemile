@@ -1,63 +1,51 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import PinCameraView from './PinCameraView';
-import PinReticleOverlay from './PinReticleOverlay';
 import PinHUDDisplay from './PinHUDDisplay';
-import { useDeviceSensors } from './useDeviceSensors';
-import { calculatePinMetrics } from './PinPhysicsEngine';
-import { PinSettings, PinResult } from '@/types/pin';
-import { X, Settings2 } from 'lucide-react';
+import { useLocationAndSensors } from './useLocationAndSensors';
+import { calculateGPSMetrics } from './PinPhysicsEngine';
+import { TargetPin, PinResult } from '@/types/pin';
+import { X, Navigation } from 'lucide-react';
 
 interface Props {
   onClose: () => void;
 }
 
+// 테스트용 임시 타겟 (임의의 좌표)
+const MOCK_TARGET: TargetPin = {
+  id: 'target-1',
+  name: '1번 홀 그린 중앙',
+  location: {
+    latitude: 37.123456, 
+    longitude: 127.123456,
+    altitude: 50.0 
+  }
+};
+
 export default function PinFinderContainer({ onClose }: Props) {
-  const { data: sensorData, hasPermission, requestPermission } = useDeviceSensors();
-  const [isFrozen, setIsFrozen] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const { sensorData, location, hasPermission, requestPermission } = useLocationAndSensors();
   const [zoomLevel, setZoomLevel] = useState(1);
-  
-  const [settings, setSettings] = useState<PinSettings>({
-    pinHeight: 2.13,
-    userCameraHeight: 1.5,
-    fovConstant: 0.88,
-    invertTilt: false
-  });
-
-  const [reticleData, setReticleData] = useState({ topY: 0, bottomY: 0, containerHeight: 0 });
-
-  // 멈춤(Freeze) 상태일 때는 Pitch 각도를 고정시켜서 고저차 연산이 흔들리지 않게 하는 것이 좋습니다.
-  // 이 데모에서는 편의상 실시간 Pitch를 사용하거나, Freeze 당시의 Pitch를 저장해둘 수 있습니다.
-  const [frozenPitch, setFrozenPitch] = useState<number | null>(null);
-
-  const toggleFreeze = () => {
-    if (!isFrozen) {
-      setFrozenPitch(sensorData.pitch);
-    }
-    setIsFrozen(!isFrozen);
-  };
+  const [targetPin] = useState<TargetPin>(MOCK_TARGET);
 
   const result: PinResult | null = useMemo(() => {
-    if (!hasPermission || reticleData.containerHeight === 0) return null;
-    
-    // 화면이 고정된 상태라면, 고정할 때의 피치 각도를 사용 (정확한 고저차 측정 위함)
-    const activePitch = (isFrozen && frozenPitch !== null) ? frozenPitch : sensorData.pitch;
+    if (!hasPermission || !location) return null;
+    return calculateGPSMetrics(location, targetPin.location);
+  }, [hasPermission, location, targetPin]);
 
-    return calculatePinMetrics(
-      reticleData.topY, 
-      reticleData.bottomY, 
-      reticleData.containerHeight, 
-      activePitch, 
-      settings,
-      zoomLevel
-    );
-  }, [hasPermission, reticleData, sensorData.pitch, isFrozen, frozenPitch, settings, zoomLevel]);
+  // 방위각 오차 계산 (AR 화살표용)
+  const bearingDiff = useMemo(() => {
+    if (!result) return 0;
+    // 사용자가 바라보는 방향(heading)과 목표물의 방위각(bearing) 차이
+    let diff = result.bearing - sensorData.heading;
+    if (diff > 180) diff -= 360;
+    if (diff < -180) diff += 360;
+    return diff;
+  }, [result, sensorData.heading]);
 
   if (hasPermission === false) {
     return (
       <div className="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
-        <h2 className="text-xl font-bold text-white mb-2">센서 접근 권한 필요</h2>
-        <p className="text-slate-300 mb-6">스마트 핀 파인더는 기기의 방향 센서를 사용합니다.</p>
+        <h2 className="text-xl font-bold text-white mb-2">권한 필요</h2>
+        <p className="text-slate-300 mb-6">스마트 핀 파인더는 위치 정보(GPS)와 기기 방향 센서를 사용합니다.</p>
         <button 
           onClick={requestPermission}
           className="bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl mb-4"
@@ -81,97 +69,43 @@ export default function PinFinderContainer({ onClose }: Props) {
         >
           <X className="w-5 h-5" />
         </button>
-        <button 
-          onClick={() => setShowSettings(!showSettings)}
-          className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 shadow-sm"
-        >
-          <Settings2 className="w-5 h-5" />
-        </button>
+        <div className="bg-black/40 backdrop-blur-md rounded-full px-4 py-2 text-white border border-white/20 shadow-sm text-sm font-medium">
+          목표: {targetPin.name}
+        </div>
       </div>
 
-      {/* Settings Modal (Overlay) */}
-      {showSettings && (
-        <div className="absolute top-16 right-4 z-50 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-4 w-64 shadow-2xl">
-          <h3 className="text-white font-bold mb-3 text-sm">깃대 설정</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs text-white/70 block mb-1">깃대 높이</label>
-              <select 
-                value={settings.pinHeight}
-                onChange={(e) => setSettings(prev => ({ ...prev, pinHeight: Number(e.target.value) }))}
-                className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-1.5 text-white text-sm outline-none"
-              >
-                <option value={1.8}>숏핀 (1.8m)</option>
-                <option value={2.13}>표준 (2.13m / 7피트)</option>
-                <option value={2.4}>롱핀 (2.4m)</option>
-              </select>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-xs text-white/70">사용자 카메라 눈높이</label>
-                <span className="text-xs text-emerald-400 font-bold">{settings.userCameraHeight?.toFixed(1)}m</span>
-              </div>
-              <input 
-                type="range" min="1.0" max="2.0" step="0.1" 
-                value={settings.userCameraHeight}
-                onChange={(e) => setSettings(prev => ({ ...prev, userCameraHeight: Number(e.target.value) }))}
-                className="w-full accent-emerald-500"
-              />
-              <p className="text-[10px] text-white/50 mt-1">지면에서부터 카메라 렌즈까지의 높이</p>
-            </div>
-            
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-xs text-white/70">렌즈 화각 보정 (기기별 오차)</label>
-                <span className="text-xs text-emerald-400 font-bold">{settings.fovConstant?.toFixed(2)}</span>
-              </div>
-              <input 
-                type="range" min="0.60" max="1.20" step="0.01" 
-                value={settings.fovConstant}
-                onChange={(e) => setSettings(prev => ({ ...prev, fovConstant: Number(e.target.value) }))}
-                className="w-full accent-emerald-500"
-              />
-              <p className="text-[10px] text-white/50 mt-1">거리가 실제보다 멀게 나오면 값을 올려주세요.</p>
-            </div>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input 
-                type="checkbox" 
-                checked={settings.invertTilt}
-                onChange={(e) => setSettings(prev => ({ ...prev, invertTilt: e.target.checked }))}
-                className="w-4 h-4 rounded accent-emerald-500"
-              />
-              <span className="text-xs text-white/90">기울기 센서 반전 (오르막/내리막)</span>
-            </label>
+      {/* AR HUD Compass Indicator */}
+      {result && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none flex flex-col items-center">
+          <div 
+            className="w-24 h-24 rounded-full border border-white/30 flex items-center justify-center relative transition-transform duration-300 ease-out"
+            style={{ transform: `rotate(${bearingDiff}deg)` }}
+          >
+            <Navigation className="w-10 h-10 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)] -translate-y-5" fill="currentColor" />
           </div>
+          {Math.abs(bearingDiff) < 5 ? (
+            <div className="text-emerald-400 font-bold mt-3 text-sm drop-shadow-md bg-black/40 px-3 py-1 rounded">정확히 조준됨</div>
+          ) : (
+            <div className="text-white/70 font-medium mt-3 text-xs drop-shadow-md bg-black/40 px-3 py-1 rounded">
+              {bearingDiff > 0 ? `우측으로 ${Math.abs(bearingDiff).toFixed(0)}도` : `좌측으로 ${Math.abs(bearingDiff).toFixed(0)}도`}
+            </div>
+          )}
         </div>
       )}
 
       {/* HUD Layer (결과 카드) */}
       <PinHUDDisplay result={result} />
 
-      {/* Camera & Freeze Layer */}
-      <PinCameraView isFrozen={isFrozen} onFreezeToggle={toggleFreeze} zoomLevel={zoomLevel} />
+      {/* Camera Layer */}
+      <PinCameraView isFrozen={false} onFreezeToggle={() => {}} zoomLevel={zoomLevel} />
 
-      {/* Reticle Overlay Layer (상하단 조준) */}
-      <PinReticleOverlay 
-        isFrozen={isFrozen} 
-        onReticleChange={(topY, bottomY, h) => setReticleData({ topY, bottomY, containerHeight: h })} 
-      />
-
-      {/* 화면 고정 버튼 (Freeze Toggle) - z-index 최상위 배치 */}
-      <div className="absolute bottom-32 inset-x-0 flex justify-center z-[110]">
-        <button
-          onClick={toggleFreeze}
-          className={`px-6 py-3 rounded-full font-bold text-sm shadow-xl backdrop-blur-md transition-all border ${
-            isFrozen 
-              ? 'bg-amber-500 text-white border-amber-400' 
-              : 'bg-white/20 text-white border-white/40 hover:bg-white/30'
-          }`}
-        >
-          {isFrozen ? '고정 해제하기 (라이브)' : '조준을 위해 화면 고정하기'}
-        </button>
+      {/* 십자선(Reticle) - GPS 뷰파인더에서는 중앙 크로스헤어만 표시 */}
+      <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center">
+        <div className="w-8 h-8 relative">
+          <div className="absolute top-1/2 left-1/2 w-1.5 h-1.5 bg-emerald-400 rounded-full -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-white/50 -translate-x-1/2" />
+          <div className="absolute left-0 right-0 top-1/2 h-[1px] bg-white/50 -translate-y-1/2" />
+        </div>
       </div>
 
       {/* 줌(Zoom) 컨트롤 버튼 */}
@@ -182,7 +116,7 @@ export default function PinFinderContainer({ onClose }: Props) {
             onClick={() => setZoomLevel(level)}
             className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-lg backdrop-blur-md transition-all border ${
               zoomLevel === level 
-                ? 'bg-amber-500 text-white border-amber-400 scale-110' 
+                ? 'bg-emerald-500 text-white border-emerald-400 scale-110' 
                 : 'bg-black/40 text-white/70 border-white/20 hover:bg-black/60'
             }`}
           >
