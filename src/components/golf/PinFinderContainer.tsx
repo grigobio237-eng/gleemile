@@ -19,6 +19,7 @@ export default function PinFinderContainer({ onClose }: Props) {
   
   const [settings, setSettings] = useState<PinSettings>({
     pinHeight: 2.13,
+    userCameraHeight: 1.5,
     fovConstant: 0.88,
     invertTilt: false
   });
@@ -104,6 +105,20 @@ export default function PinFinderContainer({ onClose }: Props) {
                 <option value={2.13}>표준 (2.13m / 7피트)</option>
                 <option value={2.4}>롱핀 (2.4m)</option>
               </select>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-xs text-white/70">사용자 카메라 눈높이</label>
+                <span className="text-xs text-emerald-400 font-bold">{settings.userCameraHeight?.toFixed(1)}m</span>
+              </div>
+              <input 
+                type="range" min="1.0" max="2.0" step="0.1" 
+                value={settings.userCameraHeight}
+                onChange={(e) => setSettings(prev => ({ ...prev, userCameraHeight: Number(e.target.value) }))}
+                className="w-full accent-emerald-500"
+              />
+              <p className="text-[10px] text-white/50 mt-1">지면에서부터 카메라 렌즈까지의 높이</p>
             </div>
             
             <div>

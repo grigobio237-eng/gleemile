@@ -53,15 +53,26 @@ export function useDeviceSensors() {
 
     if (!hasPermission) return;
 
+    let prevPitch: number | null = null;
+    let prevRoll: number | null = null;
+    const alpha = 0.15; // 필터 보정 계수
+
     const handleOrientation = (event: DeviceOrientationEvent) => {
       // 기본적으로 event.beta는 앞뒤 기울기(pitch), event.gamma는 좌우 기울기(roll)
-      let rawPitch = event.beta || 0;
-      let rawRoll = event.gamma || 0;
+      const rawPitch = event.beta || 0;
+      const rawRoll = event.gamma || 0;
+
+      // 지수 이동 평균(EMA) Low-Pass Filter 적용
+      const filteredPitch = prevPitch === null ? rawPitch : prevPitch + alpha * (rawPitch - prevPitch);
+      const filteredRoll = prevRoll === null ? rawRoll : prevRoll + alpha * (rawRoll - prevRoll);
+
+      prevPitch = filteredPitch;
+      prevRoll = filteredRoll;
 
       // 영점 오프셋을 적용한 값 (pitch는 절대값 유지, roll만 보정)
       setData({
-        pitch: rawPitch,
-        roll: rawRoll - zeroOffset.roll
+        pitch: filteredPitch,
+        roll: filteredRoll - zeroOffset.roll
       });
     };
 

@@ -17,43 +17,50 @@ export function calculatePinMetrics(
   settings: PinSettings,
   zoomLevel: number = 1
 ): PinResult | null {
-  const { pinHeight, fovConstant = 0.88, invertTilt = false } = settings;
+  const { pinHeight, userCameraHeight, fovConstant = 0.88, invertTilt = false } = settings;
 
-  // 1. 화면 내 깃대 픽셀 높이 비율 (r) (줌 레벨에 비례하여 픽셀이 커지므로 zoomLevel로 나눠줌)
   const pixelHeight = Math.abs(bottomY - topY);
   if (pixelHeight <= 0 || containerHeight <= 0) return null;
 
-  const r = (pixelHeight / containerHeight) / zoomLevel;
+  const pixelRatio = pixelHeight / containerHeight;
 
-  // 2. 깃대 비례식 기반 직선거리 (D_los)
-  // D_los = H_pin / (r * K_fov)
-  const straightDistance = pinHeight / (r * fovConstant);
+  // 1. 센서 틸트 각도 보정 (수평 0도 기준, 아래로 숙이면 양수)
+  let rawTilt = 90 - pitchDeg;
+  if (invertTilt) rawTilt = -rawTilt;
+  const tiltRad = (rawTilt * Math.PI) / 180;
 
-  // 3. 기울기 센서 기반 고저차 (Elevation) 및 수평거리 (D_flat)
-  // 스마트폰을 세워서 들고 있을 때 pitch(beta)는 90도입니다. (수평)
-  // 카메라가 위를 향하면 pitch < 90, 아래를 향하면 pitch > 90이 됩니다.
-  // 상향각(elevation angle) = 90 - pitch
-  // 안드로이드 기기 파편화로 인해 기울기 센서가 반대인 경우(invertTilt) 부호를 반전합니다.
-  let elevationAngleDeg = 90 - pitchDeg;
-  if (invertTilt) {
-    elevationAngleDeg = -elevationAngleDeg;
+  // 2. 픽셀 비율 기반 직선거리 계산 (D_pixel)
+  const adjustedRatio = pixelRatio / zoomLevel;
+  const dPixel = pinHeight / (adjustedRatio * fovConstant);
+
+  // 3. 센서 각도 기반 근거리 바닥 거리 계산 (D_ground)
+  // 내려다보는 각도가 유효할 때 (0.05rad ≈ 3도 이상 숙였을 때)
+  let dGround = dPixel;
+  if (tiltRad > 0.05) {
+    dGround = userCameraHeight / Math.tan(tiltRad);
   }
-  const elevationAngleRad = elevationAngleDeg * (Math.PI / 180);
-  
-  // 피치 상향각에 따른 고저차: D_los * sin(elevationAngle)
-  const elevation = straightDistance * Math.sin(elevationAngleRad);
-  
-  // 수평거리: D_los * cos(elevationAngle)
-  const flatDistance = straightDistance * Math.cos(elevationAngleRad);
 
-  // 4. 슬로프 보정 거리 (D_adj)
-  // k_club 계수: 오르막 1.0, 내리막 0.8
-  const kClub = elevation > 0 ? 1.0 : 0.8;
-  const adjustedDistance = flatDistance + (elevation * kClub);
+  // 4. 거리에 따른 신뢰도 가중치 융합 (30m 기준)
+  const weight = Math.max(0, Math.min(1, 1 - dPixel / 30)); 
+  const horizontalDistance = weight * dGround + (1 - weight) * (dPixel * Math.cos(tiltRad));
+
+  // 5. 지형 고저차(Elevation) 정밀 계산
+  // 카메라 눈높이(userCameraHeight) 효과 제거
+  const rawElevation = userCameraHeight - (horizontalDistance * Math.tan(tiltRad));
+  // 소수점 1자리 노이즈 필터링 (0.3m 이내는 평지 0m 처리)
+  const elevation = Math.abs(rawElevation) < 0.3 ? 0 : Number(rawElevation.toFixed(1));
+
+  // 6. 직선거리 계산
+  const straightDistance = Math.sqrt(Math.pow(horizontalDistance, 2) + Math.pow(elevation, 2));
+
+  // 7. 슬로프 보정 추천 거리 (오르막 k=1.0, 내리막 k=0.8)
+  const slopeFactor = elevation >= 0 ? 1.0 : 0.8;
+  const adjustedDistance = Math.round(horizontalDistance + (elevation * slopeFactor));
 
   return {
-    straightDistance: Number(straightDistance.toFixed(1)),
-    elevation: Number(elevation.toFixed(1)),
-    adjustedDistance: Number(adjustedDistance.toFixed(1))
+    straightDistance: Math.round(straightDistance),
+    horizontalDistance: Math.round(horizontalDistance),
+    elevation,
+    adjustedDistance,
   };
 }
