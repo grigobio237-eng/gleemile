@@ -137,7 +137,7 @@ export default function PuttingAssistantContainer({ onClose }: Props) {
       <PinCameraView 
         isFrozen={isFrozen} 
         onFreezeToggle={toggleFreeze} 
-        onZoomChange={setZoomLevel}
+        zoomLevel={zoomLevel}
       />
       <PuttingReticleOverlay 
         isFrozen={isFrozen} 
