@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import PinCameraView from './PinCameraView';
 import PinHUDDisplay from './PinHUDDisplay';
 import PinReticleOverlay from './PinReticleOverlay';
 import { useDeviceSensors } from './useDeviceSensors';
 import { calculatePinMetrics } from './PinPhysicsEngine';
 import { PinResult } from '@/types/pin';
-import { X, Search } from 'lucide-react';
+import { X, Search, HelpCircle } from 'lucide-react';
 
 interface Props {
   onClose: () => void;
@@ -16,8 +16,16 @@ export default function PinFinderContainer({ onClose }: Props) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isFrozen, setIsFrozen] = useState(false);
   const [frozenPitch, setFrozenPitch] = useState<number | null>(null);
+  const [showToast, setShowToast] = useState(true);
+  const [showHelpSheet, setShowHelpSheet] = useState(false);
   
   const [reticleData, setReticleData] = useState({ topY: 0, bottomY: 0, containerHeight: 0 });
+
+  useEffect(() => {
+    // 4초 뒤 안내 토스트 메시지 숨김
+    const timer = setTimeout(() => setShowToast(false), 4000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const toggleFreeze = () => {
     if (!isFrozen) {
@@ -73,8 +81,23 @@ export default function PinFinderContainer({ onClose }: Props) {
         >
           <X className="w-5 h-5" />
         </button>
-        <div className="bg-black/40 backdrop-blur-md rounded-full px-4 py-2 text-white border border-white/20 shadow-sm text-sm font-medium flex items-center gap-2">
-          <Search className="w-4 h-4" /> 1초 돋보기 조준
+        <div className="flex gap-2">
+          <div className="bg-black/40 backdrop-blur-md rounded-full px-4 py-2 text-white border border-white/20 shadow-sm text-sm font-medium flex items-center gap-2">
+            <Search className="w-4 h-4" /> 1초 돋보기 조준
+          </div>
+          <button 
+            onClick={() => setShowHelpSheet(true)}
+            className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 shadow-sm transition-colors hover:bg-black/60"
+          >
+            <HelpCircle className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Toast Notification */}
+      <div className={`absolute top-20 inset-x-4 z-[60] flex justify-center transition-all duration-700 pointer-events-none ${showToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
+        <div className="bg-black/80 backdrop-blur-md text-white text-sm font-bold px-5 py-3 rounded-full shadow-lg border border-white/10">
+          💡 필드의 깃대(2.1m)를 향해 조준해 주세요.
         </div>
       </div>
 
@@ -149,6 +172,39 @@ export default function PinFinderContainer({ onClose }: Props) {
           </button>
         ))}
       </div>
+
+      {/* Help BottomSheet */}
+      {showHelpSheet && (
+        <div className="fixed inset-0 z-[120] flex items-end justify-center pointer-events-auto">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setShowHelpSheet(false)} />
+          <div className="relative w-full max-w-md bg-slate-900 rounded-t-3xl p-6 pb-12 border-t border-white/10 text-white animate-in slide-in-from-bottom duration-300 shadow-2xl">
+            <button 
+              onClick={() => setShowHelpSheet(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-lg font-bold mb-5 flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-emerald-400" /> 스마트 핀 파인더 사용법
+            </h3>
+            
+            <div className="space-y-3 text-sm text-slate-300">
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                <span className="text-emerald-400 font-bold block mb-1">Step 1. 깃대 찾기</span>
+                이 기능은 <span className="text-white font-bold">실제 필드의 골프 깃대(표준 2.1m)</span>를 기준으로 설계되었습니다. 실내의 일반 사물 측정 시 오차가 발생할 수 있습니다.
+              </div>
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                <span className="text-amber-400 font-bold block mb-1">Step 2. 화면 멈춤</span>
+                깃대가 화면에 들어오면 하단의 <span className="text-white font-bold bg-emerald-500/30 px-1.5 py-0.5 rounded">조준을 위해 화면 멈춤</span> 버튼을 누르세요. 화면이 고정됩니다.
+              </div>
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                <span className="text-blue-400 font-bold block mb-1">Step 3. 정밀 조준</span>
+                중앙의 <span className="text-white font-bold">확대 돋보기</span>를 보면서 두 개의 초록색 조준선을 깃대의 가장 위쪽과 바닥 쪽에 맞추면 거리가 계산됩니다.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
