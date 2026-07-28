@@ -15,8 +15,9 @@ export default function PinReticleOverlay({ isFrozen, onReticleChange }: Props) 
     // 초기 렌더링 시 컨테이너 높이 구하고 기본값 세팅
     const h = window.innerHeight;
     setContainerHeight(h);
-    setTopY(h * 0.35);
-    setBottomY(h * 0.65);
+    // 상단 HUD 카드와 겹치지 않도록 조준선을 화면의 약간 아래쪽부터 시작합니다.
+    setTopY(h * 0.45);
+    setBottomY(h * 0.75);
   }, []);
 
   useEffect(() => {

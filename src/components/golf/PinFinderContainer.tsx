@@ -81,7 +81,7 @@ export default function PinFinderContainer({ onClose }: Props) {
       {/* 돋보기 (Magnifier Zoom Overlay) */}
       {isFrozen && reticleHeight > 0 && (
         <div 
-          className="absolute z-50 pointer-events-none rounded-full border-4 border-emerald-400/80 shadow-[0_0_20px_rgba(52,211,153,0.5)] overflow-hidden bg-black/20 backdrop-blur-md flex items-center justify-center"
+          className="absolute z-[45] pointer-events-none rounded-full border-4 border-emerald-400/80 shadow-[0_0_20px_rgba(52,211,153,0.5)] overflow-hidden flex items-center justify-center"
           style={{
             top: '50%',
             left: '50%',
@@ -90,9 +90,9 @@ export default function PinFinderContainer({ onClose }: Props) {
             height: '180px',
           }}
         >
-          {/* 중앙 가이드라인 */}
-          <div className="absolute w-full h-[1px] bg-white/50" />
-          <div className="absolute h-full w-[1px] bg-white/50" />
+          {/* 중앙 가이드라인 (선명하게) */}
+          <div className="absolute w-full h-[1px] bg-emerald-400/80" />
+          <div className="absolute h-full w-[1px] bg-emerald-400/80" />
           
           <div className="text-[10px] text-emerald-300 font-bold absolute bottom-4 bg-black/60 px-2 py-0.5 rounded">
             정밀 조준 확대
@@ -100,20 +100,24 @@ export default function PinFinderContainer({ onClose }: Props) {
         </div>
       )}
 
-      {/* HUD Layer (결과 카드) */}
-      <PinHUDDisplay result={result} />
+      {/* HUD Layer (결과 카드) - z-index 낮춤 */}
+      <div className="z-30">
+        <PinHUDDisplay result={result} />
+      </div>
 
       {/* Camera Layer */}
       {/* 확대 렌더링 효과를 위해 카메라 뷰 자체를 스케일링 */}
-      <div className={`absolute inset-0 transition-transform duration-300 ${isFrozen ? 'scale-110' : ''}`}>
-        <PinCameraView isFrozen={isFrozen} onFreezeToggle={() => {}} zoomLevel={zoomLevel} />
+      <div className={`absolute inset-0 transition-transform duration-300 pointer-events-none`} style={{ transform: isFrozen ? `scale(${zoomLevel + 0.5})` : 'scale(1)' }}>
+        <PinCameraView isFrozen={isFrozen} onFreezeToggle={() => {}} zoomLevel={1} />
       </div>
 
-      {/* Reticle Overlay Layer (상하단 조준) */}
-      <PinReticleOverlay 
-        isFrozen={isFrozen} 
-        onReticleChange={(topY, bottomY, h) => setReticleData({ topY, bottomY, containerHeight: h })} 
-      />
+      {/* Reticle Overlay Layer (상하단 조준) - HUD보다 높게 배치 */}
+      <div className="absolute inset-0 z-50 pointer-events-none">
+        <PinReticleOverlay 
+          isFrozen={isFrozen} 
+          onReticleChange={(topY, bottomY, h) => setReticleData({ topY, bottomY, containerHeight: h })} 
+        />
+      </div>
 
       {/* 화면 고정 버튼 (Freeze Toggle) - z-index 최상위 배치 */}
       <div className="absolute bottom-12 inset-x-0 flex justify-center z-[110]">
