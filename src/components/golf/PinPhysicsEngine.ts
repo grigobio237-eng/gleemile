@@ -7,8 +7,7 @@ import { PinSettings, PinResult } from '@/types/pin';
 // 스마트폰 카메라의 보편적인 세로 화각 상수 (FOV-y)
 // 기기별로 다를 수 있으나 약 55도 ~ 60도 부근. 라디안으로 변환된 K_fov 값을 상수화
 // tan(FOV_Y/2) * 2 방식의 근사치를 사용하거나, 화각에 대한 실험적 상수를 적용.
-// 여기서는 일반적인 스마트폰 광각(1x) 세로 화각 기준 상수 (약 0.8) 적용
-const K_FOV = 0.8; 
+// 기본값 0.88 적용 (settings.fovConstant) 
 
 export function calculatePinMetrics(
   topY: number, 
@@ -18,7 +17,7 @@ export function calculatePinMetrics(
   settings: PinSettings,
   zoomLevel: number = 1
 ): PinResult | null {
-  const { pinHeight } = settings;
+  const { pinHeight, fovConstant = 0.88, invertTilt = false } = settings;
 
   // 1. 화면 내 깃대 픽셀 높이 비율 (r) (줌 레벨에 비례하여 픽셀이 커지므로 zoomLevel로 나눠줌)
   const pixelHeight = Math.abs(bottomY - topY);
@@ -28,13 +27,17 @@ export function calculatePinMetrics(
 
   // 2. 깃대 비례식 기반 직선거리 (D_los)
   // D_los = H_pin / (r * K_fov)
-  const straightDistance = pinHeight / (r * K_FOV);
+  const straightDistance = pinHeight / (r * fovConstant);
 
   // 3. 기울기 센서 기반 고저차 (Elevation) 및 수평거리 (D_flat)
   // 스마트폰을 세워서 들고 있을 때 pitch(beta)는 90도입니다. (수평)
   // 카메라가 위를 향하면 pitch < 90, 아래를 향하면 pitch > 90이 됩니다.
   // 상향각(elevation angle) = 90 - pitch
-  const elevationAngleDeg = 90 - pitchDeg;
+  // 안드로이드 기기 파편화로 인해 기울기 센서가 반대인 경우(invertTilt) 부호를 반전합니다.
+  let elevationAngleDeg = 90 - pitchDeg;
+  if (invertTilt) {
+    elevationAngleDeg = -elevationAngleDeg;
+  }
   const elevationAngleRad = elevationAngleDeg * (Math.PI / 180);
   
   // 피치 상향각에 따른 고저차: D_los * sin(elevationAngle)

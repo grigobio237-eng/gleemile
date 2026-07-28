@@ -18,7 +18,9 @@ export default function PinFinderContainer({ onClose }: Props) {
   const [zoomLevel, setZoomLevel] = useState(1);
   
   const [settings, setSettings] = useState<PinSettings>({
-    pinHeight: 2.13
+    pinHeight: 2.13,
+    fovConstant: 0.88,
+    invertTilt: false
   });
 
   const [reticleData, setReticleData] = useState({ topY: 0, bottomY: 0, containerHeight: 0 });
@@ -103,6 +105,30 @@ export default function PinFinderContainer({ onClose }: Props) {
                 <option value={2.4}>롱핀 (2.4m)</option>
               </select>
             </div>
+            
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-xs text-white/70">렌즈 화각 보정 (기기별 오차)</label>
+                <span className="text-xs text-emerald-400 font-bold">{settings.fovConstant?.toFixed(2)}</span>
+              </div>
+              <input 
+                type="range" min="0.60" max="1.20" step="0.01" 
+                value={settings.fovConstant}
+                onChange={(e) => setSettings(prev => ({ ...prev, fovConstant: Number(e.target.value) }))}
+                className="w-full accent-emerald-500"
+              />
+              <p className="text-[10px] text-white/50 mt-1">거리가 실제보다 멀게 나오면 값을 올려주세요.</p>
+            </div>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={settings.invertTilt}
+                onChange={(e) => setSettings(prev => ({ ...prev, invertTilt: e.target.checked }))}
+                className="w-4 h-4 rounded accent-emerald-500"
+              />
+              <span className="text-xs text-white/90">기울기 센서 반전 (오르막/내리막)</span>
+            </label>
           </div>
         </div>
       )}
