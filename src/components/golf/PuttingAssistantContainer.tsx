@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import CameraView from './CameraView';
 import ARCanvasOverlay from './ARCanvasOverlay';
 import HUDDisplay from './HUDDisplay';
-import { useLocationAndSensors } from './useLocationAndSensors';
+import { useDeviceSensors } from './useDeviceSensors';
 import { calculatePuttingMetrics } from './PuttingPhysicsEngine';
 import { PuttingSettings, PuttingResult } from '@/types/golf';
 import { X, Settings2 } from 'lucide-react';
@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function PuttingAssistantContainer({ onClose }: Props) {
-  const { sensorData, hasPermission, requestPermission, resetZero } = useLocationAndSensors();
+  const { data: sensorData, hasPermission, requestPermission, resetZero } = useDeviceSensors();
   const [settings, setSettings] = useState<PuttingSettings>({
     userHeight: 1.6,
     greenSpeed: 2.5

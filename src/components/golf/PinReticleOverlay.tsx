@@ -15,8 +15,8 @@ export default function PinReticleOverlay({ isFrozen, onReticleChange }: Props) 
     // 초기 렌더링 시 컨테이너 높이 구하고 기본값 세팅
     const h = window.innerHeight;
     setContainerHeight(h);
-    setTopY(h * 0.3);
-    setBottomY(h * 0.7);
+    setTopY(h * 0.35);
+    setBottomY(h * 0.65);
   }, []);
 
   useEffect(() => {
@@ -26,13 +26,11 @@ export default function PinReticleOverlay({ isFrozen, onReticleChange }: Props) 
   }, [topY, bottomY, containerHeight, onReticleChange]);
 
   const handleTouchStart = (e: React.TouchEvent, line: 'top' | 'bottom') => {
-    if (!isFrozen) return; // Freeze 상태에서만 드래그 가능
-    // 터치 시 스크롤 등 방지 (컨테이너에 touch-none 클래스 적용되어 있음)
     setActiveLine(line);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isFrozen || !activeLine) return;
+    if (!activeLine) return;
     const y = e.touches[0].clientY;
     
     if (activeLine === 'top') {
@@ -48,17 +46,14 @@ export default function PinReticleOverlay({ isFrozen, onReticleChange }: Props) 
 
   return (
     <div 
-      className="absolute inset-0 z-20 pointer-events-auto touch-none"
+      className={`absolute inset-0 z-20 touch-none ${isFrozen ? 'pointer-events-auto' : 'pointer-events-none'}`}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >
-      {/* 십자선 중앙 (참고용) */}
-      <div className="absolute top-1/2 left-1/2 w-4 h-4 border-2 border-white/50 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none" />
-
       {/* 깃대 상단선 */}
       <div 
-        className="absolute w-full h-12 flex items-center justify-center cursor-ns-resize -translate-y-1/2"
+        className={`absolute w-full h-12 flex items-center justify-center -translate-y-1/2 ${isFrozen ? 'cursor-ns-resize pointer-events-auto' : 'pointer-events-none'}`}
         style={{ top: topY }}
         onTouchStart={(e) => handleTouchStart(e, 'top')}
       >
@@ -69,7 +64,7 @@ export default function PinReticleOverlay({ isFrozen, onReticleChange }: Props) 
 
       {/* 깃대 하단선 */}
       <div 
-        className="absolute w-full h-12 flex items-center justify-center cursor-ns-resize -translate-y-1/2"
+        className={`absolute w-full h-12 flex items-center justify-center -translate-y-1/2 ${isFrozen ? 'cursor-ns-resize pointer-events-auto' : 'pointer-events-none'}`}
         style={{ top: bottomY }}
         onTouchStart={(e) => handleTouchStart(e, 'bottom')}
       >
@@ -83,12 +78,6 @@ export default function PinReticleOverlay({ isFrozen, onReticleChange }: Props) 
         className="absolute left-1/2 w-px bg-white/30 pointer-events-none border-l border-dashed border-white/50"
         style={{ top: topY, height: bottomY - topY }}
       />
-
-      {!isFrozen && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/60 text-xs bg-black/40 px-3 py-1.5 rounded-full pointer-events-none font-bold">
-          화면을 고정하고 선을 조절하세요
-        </div>
-      )}
     </div>
   );
 }

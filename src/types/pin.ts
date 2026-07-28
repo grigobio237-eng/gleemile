@@ -1,18 +1,10 @@
-export interface GeoCoordinates {
-  latitude: number;
-  longitude: number;
-  altitude: number; // 고도 (m)
-}
-
-export interface TargetPin {
-  id: string;
-  name: string;
-  location: GeoCoordinates;
+export interface PinSettings {
+  pinHeight: number;        // 규격 깃대 높이 (기본값: 2.1m)
+  invertTilt?: boolean;     // 센서 기울기 반전 여부
 }
 
 export interface PinResult {
   horizontalDistance: number; // 수평거리 (m)
-  elevation: number;          // 고저차 (m)
-  adjustedDistance: number;   // 보정거리 (m)
-  bearing: number;            // 목표물 방위각 (deg)
+  elevation: number;          // 고저차 (▲/▼ m)
+  adjustedDistance: number;   // 추천 보정거리 (m)
 }

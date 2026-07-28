@@ -1,51 +1,52 @@
 import React, { useState, useMemo } from 'react';
 import PinCameraView from './PinCameraView';
 import PinHUDDisplay from './PinHUDDisplay';
-import { useLocationAndSensors } from './useLocationAndSensors';
-import { calculateGPSMetrics } from './PinPhysicsEngine';
-import { TargetPin, PinResult } from '@/types/pin';
-import { X, Navigation } from 'lucide-react';
+import PinReticleOverlay from './PinReticleOverlay';
+import { useDeviceSensors } from './useDeviceSensors';
+import { calculatePinMetrics } from './PinPhysicsEngine';
+import { PinResult } from '@/types/pin';
+import { X, Search } from 'lucide-react';
 
 interface Props {
   onClose: () => void;
 }
 
-// 테스트용 임시 타겟 (임의의 좌표)
-const MOCK_TARGET: TargetPin = {
-  id: 'target-1',
-  name: '1번 홀 그린 중앙',
-  location: {
-    latitude: 37.123456, 
-    longitude: 127.123456,
-    altitude: 50.0 
-  }
-};
-
 export default function PinFinderContainer({ onClose }: Props) {
-  const { sensorData, location, hasPermission, requestPermission } = useLocationAndSensors();
+  const { data: sensorData, hasPermission, requestPermission } = useDeviceSensors();
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [targetPin] = useState<TargetPin>(MOCK_TARGET);
+  const [isFrozen, setIsFrozen] = useState(false);
+  const [frozenPitch, setFrozenPitch] = useState<number | null>(null);
+  
+  const [reticleData, setReticleData] = useState({ topY: 0, bottomY: 0, containerHeight: 0 });
+
+  const toggleFreeze = () => {
+    if (!isFrozen) {
+      setFrozenPitch(sensorData.pitch);
+    }
+    setIsFrozen(!isFrozen);
+  };
 
   const result: PinResult | null = useMemo(() => {
-    if (!hasPermission || !location) return null;
-    return calculateGPSMetrics(location, targetPin.location);
-  }, [hasPermission, location, targetPin]);
+    if (!hasPermission || reticleData.containerHeight === 0) return null;
+    
+    // 화면 고정 상태면 고정할 때의 피치 사용, 아니면 실시간 피치
+    const activePitch = (isFrozen && frozenPitch !== null) ? frozenPitch : sensorData.pitch;
 
-  // 방위각 오차 계산 (AR 화살표용)
-  const bearingDiff = useMemo(() => {
-    if (!result) return 0;
-    // 사용자가 바라보는 방향(heading)과 목표물의 방위각(bearing) 차이
-    let diff = result.bearing - sensorData.heading;
-    if (diff > 180) diff -= 360;
-    if (diff < -180) diff += 360;
-    return diff;
-  }, [result, sensorData.heading]);
+    return calculatePinMetrics(
+      reticleData.topY, 
+      reticleData.bottomY, 
+      reticleData.containerHeight, 
+      activePitch, 
+      { pinHeight: 2.1, invertTilt: false }, // 하드코딩
+      zoomLevel
+    );
+  }, [hasPermission, reticleData, sensorData.pitch, isFrozen, frozenPitch, zoomLevel]);
 
   if (hasPermission === false) {
     return (
       <div className="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
-        <h2 className="text-xl font-bold text-white mb-2">권한 필요</h2>
-        <p className="text-slate-300 mb-6">스마트 핀 파인더는 위치 정보(GPS)와 기기 방향 센서를 사용합니다.</p>
+        <h2 className="text-xl font-bold text-white mb-2">센서 권한 필요</h2>
+        <p className="text-slate-300 mb-6">스마트 핀 파인더는 카메라와 기기 방향 센서를 사용합니다.</p>
         <button 
           onClick={requestPermission}
           className="bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl mb-4"
@@ -59,6 +60,9 @@ export default function PinFinderContainer({ onClose }: Props) {
     );
   }
 
+  // 조준선(Reticle) 영역 높이 (px)
+  const reticleHeight = Math.abs(reticleData.bottomY - reticleData.topY);
+
   return (
     <div className="fixed inset-0 z-[100] bg-black overflow-hidden touch-none">
       {/* Top Navigation */}
@@ -69,27 +73,30 @@ export default function PinFinderContainer({ onClose }: Props) {
         >
           <X className="w-5 h-5" />
         </button>
-        <div className="bg-black/40 backdrop-blur-md rounded-full px-4 py-2 text-white border border-white/20 shadow-sm text-sm font-medium">
-          목표: {targetPin.name}
+        <div className="bg-black/40 backdrop-blur-md rounded-full px-4 py-2 text-white border border-white/20 shadow-sm text-sm font-medium flex items-center gap-2">
+          <Search className="w-4 h-4" /> 1초 돋보기 조준
         </div>
       </div>
 
-      {/* AR HUD Compass Indicator */}
-      {result && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none flex flex-col items-center">
-          <div 
-            className="w-24 h-24 rounded-full border border-white/30 flex items-center justify-center relative transition-transform duration-300 ease-out"
-            style={{ transform: `rotate(${bearingDiff}deg)` }}
-          >
-            <Navigation className="w-10 h-10 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)] -translate-y-5" fill="currentColor" />
+      {/* 돋보기 (Magnifier Zoom Overlay) */}
+      {isFrozen && reticleHeight > 0 && (
+        <div 
+          className="absolute z-50 pointer-events-none rounded-full border-4 border-emerald-400/80 shadow-[0_0_20px_rgba(52,211,153,0.5)] overflow-hidden bg-black/20 backdrop-blur-md flex items-center justify-center"
+          style={{
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '180px',
+            height: '180px',
+          }}
+        >
+          {/* 중앙 가이드라인 */}
+          <div className="absolute w-full h-[1px] bg-white/50" />
+          <div className="absolute h-full w-[1px] bg-white/50" />
+          
+          <div className="text-[10px] text-emerald-300 font-bold absolute bottom-4 bg-black/60 px-2 py-0.5 rounded">
+            정밀 조준 확대
           </div>
-          {Math.abs(bearingDiff) < 5 ? (
-            <div className="text-emerald-400 font-bold mt-3 text-sm drop-shadow-md bg-black/40 px-3 py-1 rounded">정확히 조준됨</div>
-          ) : (
-            <div className="text-white/70 font-medium mt-3 text-xs drop-shadow-md bg-black/40 px-3 py-1 rounded">
-              {bearingDiff > 0 ? `우측으로 ${Math.abs(bearingDiff).toFixed(0)}도` : `좌측으로 ${Math.abs(bearingDiff).toFixed(0)}도`}
-            </div>
-          )}
         </div>
       )}
 
@@ -97,15 +104,29 @@ export default function PinFinderContainer({ onClose }: Props) {
       <PinHUDDisplay result={result} />
 
       {/* Camera Layer */}
-      <PinCameraView isFrozen={false} onFreezeToggle={() => {}} zoomLevel={zoomLevel} />
+      {/* 확대 렌더링 효과를 위해 카메라 뷰 자체를 스케일링 */}
+      <div className={`absolute inset-0 transition-transform duration-300 ${isFrozen ? 'scale-110' : ''}`}>
+        <PinCameraView isFrozen={isFrozen} onFreezeToggle={() => {}} zoomLevel={zoomLevel} />
+      </div>
 
-      {/* 십자선(Reticle) - GPS 뷰파인더에서는 중앙 크로스헤어만 표시 */}
-      <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center">
-        <div className="w-8 h-8 relative">
-          <div className="absolute top-1/2 left-1/2 w-1.5 h-1.5 bg-emerald-400 rounded-full -translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-white/50 -translate-x-1/2" />
-          <div className="absolute left-0 right-0 top-1/2 h-[1px] bg-white/50 -translate-y-1/2" />
-        </div>
+      {/* Reticle Overlay Layer (상하단 조준) */}
+      <PinReticleOverlay 
+        isFrozen={isFrozen} 
+        onReticleChange={(topY, bottomY, h) => setReticleData({ topY, bottomY, containerHeight: h })} 
+      />
+
+      {/* 화면 고정 버튼 (Freeze Toggle) - z-index 최상위 배치 */}
+      <div className="absolute bottom-12 inset-x-0 flex justify-center z-[110]">
+        <button
+          onClick={toggleFreeze}
+          className={`px-8 py-4 rounded-full font-bold text-base shadow-2xl backdrop-blur-xl transition-all border-2 ${
+            isFrozen 
+              ? 'bg-amber-500 text-white border-amber-400' 
+              : 'bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600'
+          }`}
+        >
+          {isFrozen ? '조준 해제 (다시 찍기)' : '조준을 위해 화면 멈춤'}
+        </button>
       </div>
 
       {/* 줌(Zoom) 컨트롤 버튼 */}
