@@ -37,6 +37,16 @@ export function useLocationAndSensors() {
     }
   }, []);
 
+  const [zeroOffset, setZeroOffset] = useState<SensorData>({ pitch: 0, roll: 0, heading: 0 });
+
+  const resetZero = useCallback(() => {
+    setZeroOffset(prev => ({
+      pitch: 0, 
+      roll: sensorData.roll + prev.roll,
+      heading: 0
+    }));
+  }, [sensorData.roll]);
+
   // 센서 로직
   useEffect(() => {
     if (hasPermission === null) {
@@ -82,25 +92,25 @@ export function useLocationAndSensors() {
 
       setSensorData({
         pitch: filteredPitch,
-        roll: filteredRoll,
+        roll: filteredRoll - zeroOffset.roll,
         heading: filteredHeading
       });
     };
 
     if ('ondeviceorientationabsolute' in window) {
-      window.addEventListener('deviceorientationabsolute', handleOrientation);
+      (window as any).addEventListener('deviceorientationabsolute', handleOrientation);
     } else {
-      window.addEventListener('deviceorientation', handleOrientation);
+      (window as any).addEventListener('deviceorientation', handleOrientation);
     }
 
     return () => {
       if ('ondeviceorientationabsolute' in window) {
-        window.removeEventListener('deviceorientationabsolute', handleOrientation);
+        (window as any).removeEventListener('deviceorientationabsolute', handleOrientation);
       } else {
-        window.removeEventListener('deviceorientation', handleOrientation);
+        (window as any).removeEventListener('deviceorientation', handleOrientation);
       }
     };
-  }, [hasPermission]);
+  }, [hasPermission, zeroOffset.roll]);
 
   // GPS 로직
   useEffect(() => {
@@ -128,5 +138,5 @@ export function useLocationAndSensors() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, [hasPermission]);
 
-  return { sensorData, location, hasPermission, requestPermission };
+  return { sensorData, location, hasPermission, requestPermission, resetZero };
 }
