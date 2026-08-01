@@ -99,6 +99,11 @@ export const SMSTemplates = {
   securityAlert: (action: string, customerName: string) => ({
     to: '', // 실제로는 고객 전화번호
     message: `[Youniqle 보안] ${customerName}님, 계정에서 ${action}이 감지되었습니다. 본인이 아닌 경우 고객센터에 문의하세요.`
+  }),
+
+  laborContractLink: (employeeName: string, employerName: string, contractUrl: string) => ({
+    to: '', // 실제로는 근로자 전화번호
+    message: `[전자근로계약서 도착]\n${employeeName}님, ${employerName}에서 근로계약서 서명을 요청했습니다.\n아래 링크를 눌러 내용을 확인하고 서명을 완료해 주세요.\n\n▶ 서명하러 가기: ${contractUrl}`
   })
 };
 
@@ -184,5 +189,15 @@ export async function sendSecurityAlertSMS(
   customerName: string
 ): Promise<SMSResult> {
   const template = SMSTemplates.securityAlert(action, customerName);
+  return await sendSMS({ ...template, to: phone });
+}
+
+export async function sendLaborContractLinkSMS(
+  phone: string,
+  employeeName: string,
+  employerName: string,
+  contractUrl: string
+): Promise<SMSResult> {
+  const template = SMSTemplates.laborContractLink(employeeName, employerName, contractUrl);
   return await sendSMS({ ...template, to: phone });
 }

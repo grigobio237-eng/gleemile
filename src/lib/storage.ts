@@ -99,6 +99,75 @@ export class StorageService {
     }
 
     /**
+     * Base64 인코딩된 이미지(주로 서명 데이터)를 업로드합니다.
+     */
+    static async uploadBase64Image(
+        base64String: string,
+        options: UploadOptions = {}
+    ): Promise<{ url: string; filename: string; size: number }> {
+        // 데이터 URL 프리픽스 제거
+        const base64Data = base64String.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        return this.uploadImage(buffer, options);
+    }
+
+    /**
+     * 생성된 PDF 파일을 업로드합니다.
+     */
+    static async uploadPdf(
+        buffer: Buffer,
+        options: Omit<UploadOptions, 'contentType'> = {}
+    ): Promise<{ url: string; filename: string; size: number }> {
+        const {
+            folder = 'labor-contracts',
+            filename = `${uuidv4()}.pdf`,
+            useFirebase = true
+        } = options;
+
+        const filePath = `${folder}/${filename}`;
+
+        if (useFirebase) {
+            const file = this.bucket.file(filePath);
+            const downloadToken = uuidv4();
+
+            await file.save(buffer, {
+                metadata: {
+                    contentType: 'application/pdf',
+                    cacheControl: 'public, max-age=31536000',
+                    metadata: {
+                        firebaseStorageDownloadTokens: downloadToken
+                    }
+                }
+            });
+
+            try {
+                await file.makePublic();
+            } catch (publicError) {
+                console.warn('[StorageService] makePublic 실패 (무시하고 진행):', (publicError as any).message);
+            }
+
+            const url = `https://firebasestorage.googleapis.com/v0/b/${this.bucket.name}/o/${encodeURIComponent(filePath)}?alt=media&token=${downloadToken}`;
+
+            return {
+                url,
+                filename,
+                size: buffer.length
+            };
+        } else {
+            const blob = await put(filePath, buffer, {
+                access: 'public',
+                token: process.env.BLOB_READ_WRITE_TOKEN,
+            });
+
+            return {
+                url: blob.url,
+                filename,
+                size: buffer.length
+            };
+        }
+    }
+
+    /**
      * 파일 삭제 (URL 또는 경로)
      */
     static async deleteFile(urlOrPath: string | null | undefined): Promise<void> {
