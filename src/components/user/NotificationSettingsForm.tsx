@@ -75,12 +75,13 @@ export function NotificationSettingsForm({ userId, initialSettings }: Notificati
           <div className="p-6 bg-slate-50/50 hover:bg-slate-50 transition-colors flex items-center justify-between">
             <div>
               <p className="font-bold text-obsidian text-sm">전체 푸시 알림</p>
-              <p className="text-[11px] text-slate-500 mt-0.5">글리마일의 모든 실시간 알림을 켜거나 끕니다.</p>
+              <p className="text-[11px] text-slate-600 mt-0.5">글리마일의 모든 실시간 알림을 켜거나 끕니다.</p>
             </div>
             <Switch 
               checked={settings.isAllEnabled}
               onCheckedChange={() => handleToggle('isAllEnabled')}
               disabled={isUpdating}
+              aria-label="전체 푸시 알림 토글"
               className="data-[state=checked]:bg-obsidian"
             />
           </div>
@@ -93,13 +94,14 @@ export function NotificationSettingsForm({ userId, initialSettings }: Notificati
               </div>
               <div>
                 <p className="font-bold text-slate-700 text-sm">채팅 메시지</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">새로운 팀 채팅이나 첨부파일 알림</p>
+                <p className="text-[11px] text-slate-600 mt-0.5">새로운 팀 채팅이나 첨부파일 알림</p>
               </div>
             </div>
             <Switch 
               checked={settings.chatEnabled}
               onCheckedChange={() => handleToggle('chatEnabled')}
               disabled={isUpdating || !settings.isAllEnabled}
+              aria-label="채팅 메시지 알림 토글"
               className="data-[state=checked]:bg-indigo-600"
             />
           </div>
@@ -111,13 +113,14 @@ export function NotificationSettingsForm({ userId, initialSettings }: Notificati
               </div>
               <div>
                 <p className="font-bold text-slate-700 text-sm">공지사항</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">팀 임원이 작성한 중요 공지 알림</p>
+                <p className="text-[11px] text-slate-600 mt-0.5">팀 임원이 작성한 중요 공지 알림</p>
               </div>
             </div>
             <Switch 
               checked={settings.announcementEnabled}
               onCheckedChange={() => handleToggle('announcementEnabled')}
               disabled={isUpdating || !settings.isAllEnabled}
+              aria-label="공지사항 알림 토글"
               className="data-[state=checked]:bg-rose-500"
             />
           </div>

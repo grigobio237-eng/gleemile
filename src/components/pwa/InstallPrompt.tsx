@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { X, Share, PlusSquare, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -89,13 +90,17 @@ export function InstallPrompt() {
       <div className="fixed bottom-4 left-4 right-4 z-50 bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 animate-in slide-in-from-bottom-10">
         <div className="flex items-start justify-between">
           <div className="flex gap-3 items-center">
-            <img src="/images/confident.png" alt="App Icon" className="w-12 h-12 rounded-xl object-cover shadow-sm" />
+            <Image src="/images/confident.png" alt="Gleemile 앱 아이콘" width={48} height={48} className="rounded-xl object-cover shadow-sm" />
             <div>
               <h4 className="text-sm font-black text-slate-800">앱으로 설치하기</h4>
-              <p className="text-[11px] text-slate-500 font-medium">더 빠르고 편리하게 Gleemile을 이용하세요.</p>
+              <p className="text-[11px] text-slate-600 font-medium">더 빠르고 편리하게 Gleemile을 이용하세요.</p>
             </div>
           </div>
-          <button onClick={dismissAndroid} className="p-1 text-slate-400 hover:text-slate-600 bg-slate-50 rounded-full shrink-0">
+          <button
+            onClick={dismissAndroid}
+            aria-label="앱 설치 안내 닫기"
+            className="p-1 text-slate-500 hover:text-slate-700 bg-slate-50 rounded-full shrink-0"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -120,16 +125,20 @@ export function InstallPrompt() {
       <div className="fixed bottom-4 left-4 right-4 z-50 bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 animate-in slide-in-from-bottom-10">
         <div className="flex items-start justify-between">
           <div className="flex gap-3 items-center">
-            <img src="/images/confident.png" alt="App Icon" className="w-12 h-12 rounded-xl object-cover shadow-sm" />
+            <Image src="/images/confident.png" alt="Gleemile 앱 아이콘" width={48} height={48} className="rounded-xl object-cover shadow-sm" />
             <div>
               <h4 className="text-sm font-black text-slate-800">홈 화면에 추가하세요</h4>
-              <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                하단의 <Share className="inline w-3.5 h-3.5 mx-0.5 text-blue-500" /> 공유 버튼을 누르고<br/>
-                <PlusSquare className="inline w-3.5 h-3.5 mx-0.5 text-slate-700" /> <b>홈 화면에 추가</b>를 선택하세요.
+              <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                하단의 <Share className="inline w-3.5 h-3.5 mx-0.5 text-blue-500" aria-hidden="true" /> 공유 버튼을 누르고<br/>
+                <PlusSquare className="inline w-3.5 h-3.5 mx-0.5 text-slate-700" aria-hidden="true" /> <b>홈 화면에 추가</b>를 선택하세요.
               </p>
             </div>
           </div>
-          <button onClick={dismissIos} className="p-1 text-slate-400 hover:text-slate-600 bg-slate-50 rounded-full shrink-0">
+          <button
+            onClick={dismissIos}
+            aria-label="홈 화면 추가 안내 닫기"
+            className="p-1 text-slate-500 hover:text-slate-700 bg-slate-50 rounded-full shrink-0"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>

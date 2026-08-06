@@ -244,11 +244,12 @@ export default function RootHubPage() {
               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
                 <div>
                   <h4 className="text-sm font-bold text-slate-800">공개 여부</h4>
-                  <p className="text-[10px] text-slate-500 mt-0.5">탐색창에 모임을 노출할까요?</p>
+                  <p className="text-[10px] text-slate-600 mt-0.5">탐색창에 모임을 노출할까요?</p>
                 </div>
                 <Switch 
                   checked={newIsPublic} 
-                  onCheckedChange={setNewIsPublic} 
+                  onCheckedChange={setNewIsPublic}
+                  aria-label="모임 공개 여부 토글"
                   className="data-[state=checked]:bg-emerald-500"
                 />
               </div>

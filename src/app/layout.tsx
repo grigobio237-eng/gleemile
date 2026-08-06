@@ -6,11 +6,13 @@ import { Providers } from "./providers";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap", // LCP 개선: 폰트 로딩 중 폴백(FOIT) 방지
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -44,7 +46,12 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[#FAF9F6]">
         <InAppBrowserGuard />
-        <Providers>{children}</Providers>
+        <Providers>
+          {/* <main> 랜드마크: 접근성 필수 요소. 스크린 리더 사용자가 주 콘텐츠로 바로 이동 가능. */}
+          <main id="main-content" className="flex flex-col flex-1 min-h-0">
+            {children}
+          </main>
+        </Providers>
         <InstallPrompt />
       </body>
     </html>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
+import NextImage from 'next/image';
 import { doc, getDoc, updateDoc, collection, query, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
@@ -404,7 +405,7 @@ export default function TeamSetupPage() {
                 teamIcon.length <= 4 ? (
                   <span className="text-4xl">{teamIcon}</span>
                 ) : (
-                  <img src={teamIcon} alt="Team Icon" className="w-full h-full object-cover" />
+                  <NextImage src={teamIcon} alt="팀 대표 이미지" width={96} height={96} className="w-full h-full object-cover" />
                 )
               ) : (
                 <span className="text-3xl font-black text-slate-300">{teamName.charAt(0)}</span>
@@ -666,6 +667,7 @@ export default function TeamSetupPage() {
                           <Switch 
                             checked={isChecked}
                             onCheckedChange={(checked) => handleToggle(module.id, checked)}
+                            aria-label={`${module.label} 모듈 활성화 토글`}
                             className="data-[state=checked]:bg-emerald-500 shrink-0 ml-2"
                           />
                         </div>
