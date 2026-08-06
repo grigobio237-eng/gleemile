@@ -48,7 +48,9 @@ const AVAILABLE_MODULES = [
 
   // 비즈니스
   { id: 'KanbanTaskBlock', category: 'business', label: '업무현황', description: '할 일, 진행 중, 완료 작업 관리.', icon: KanbanSquare, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-  { id: 'SmallBizBlock', category: 'business', label: '소상공인 도구', description: '업종별 맞춤형 도구(노무, 예약금, 견적 등).', icon: Briefcase, color: 'text-emerald-600', bg: 'bg-emerald-50' }
+  
+  // 소상공인
+  { id: 'SmallBizBlock', category: 'merchant', label: '소상공인 도구', description: '업종별 맞춤형 도구(노무, 예약금, 견적 등).', icon: Briefcase, color: 'text-emerald-600', bg: 'bg-emerald-50' }
 ];
 
 const CATEGORY_TABS = [
@@ -56,7 +58,8 @@ const CATEGORY_TABS = [
   { id: 'common', label: '공통' },
   { id: 'sports', label: '⚽ 스포츠' },
   { id: 'study', label: '📚 스터디' },
-  { id: 'business', label: '💼 비즈니스' }
+  { id: 'business', label: '💼 비즈니스' },
+  { id: 'merchant', label: '🏪 소상공인' }
 ];
 
 const PREDEFINED_EMOJIS = ['🚀', '⚽', '🎨', '💼', '🏆', '🔥', '💡', '🌟', '📚', '💪'];

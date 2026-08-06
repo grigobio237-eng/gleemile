@@ -39,7 +39,7 @@ export interface IFirestoreTeam {
   teamName: string;
   teamCode: string;       
   category: 'youth' | 'pro' | 'amateur';
-  templateType: 'business' | 'hobby' | 'study' | 'sports';
+  templateType: 'business' | 'hobby' | 'study' | 'sports' | 'merchant';
   description?: string;
   logoUrl?: string;
   inviteLink: string;

@@ -219,12 +219,13 @@ export default function RootHubPage() {
               
               <div>
                 <label className="text-xs font-bold text-slate-500 mb-1.5 block">템플릿 유형</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {[
                     { id: 'sports', label: '⚽ 스포츠' },
                     { id: 'study', label: '📚 스터디' },
                     { id: 'business', label: '💼 비즈니스' },
                     { id: 'hobby', label: '🎨 취미/창작' },
+                    { id: 'merchant', label: '🏪 소상공인' },
                   ].map(t => (
                     <button
                       key={t.id}
