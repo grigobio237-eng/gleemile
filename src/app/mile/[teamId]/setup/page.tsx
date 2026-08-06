@@ -16,7 +16,7 @@ import {
   GraduationCap, BookOpen, ThumbsUp, Timer, CalendarCheck,
   Target, KanbanSquare, RefreshCw, ActivitySquare, ClipboardList,
   Flame, Image, FileVideo, Scale, Crown, ChevronDown, UserCircle2, Flag,
-  GripHorizontal, Briefcase
+  GripHorizontal, Briefcase, Shield, CalendarX2, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -50,7 +50,11 @@ const AVAILABLE_MODULES = [
   { id: 'KanbanTaskBlock', category: 'business', label: '업무현황', description: '할 일, 진행 중, 완료 작업 관리.', icon: KanbanSquare, color: 'text-indigo-600', bg: 'bg-indigo-50' },
   
   // 소상공인
-  { id: 'SmallBizBlock', category: 'merchant', label: '소상공인 도구', description: '업종별 맞춤형 도구(노무, 예약금, 견적 등).', icon: Briefcase, color: 'text-emerald-600', bg: 'bg-emerald-50' }
+  { id: 'LaborShieldBlock', category: 'merchant', label: 'Labor-Shield', description: '전자근로계약서 · 노무 방어', icon: Shield, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+  { id: 'NoShowZeroBlock', category: 'merchant', label: 'NoShow-Zero', description: '예약금 · 노쇼 방지 · 회원권', icon: CalendarX2, color: 'text-pink-600', bg: 'bg-pink-50' },
+  { id: 'QuickQuoteBlock', category: 'merchant', label: 'Quick-Quote', description: '1분 사진 견적서 · AS 방어', icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
+  { id: 'PayCollectorBlock', category: 'merchant', label: 'Pay-Collector', description: '미수금 · 원비 자동 청구', icon: DollarSign, color: 'text-violet-600', bg: 'bg-violet-50' },
+  { id: 'MarginGuardBlock', category: 'merchant', label: 'Margin-Guard', description: '실질 마진율 · BEP 계산기', icon: Scale, color: 'text-orange-600', bg: 'bg-orange-50' }
 ];
 
 const CATEGORY_TABS = [

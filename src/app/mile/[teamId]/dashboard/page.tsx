@@ -35,7 +35,11 @@ import { KanbanTaskBlock } from '@/components/blocks/KanbanTaskBlock';
 import { TeamChatRoom } from '@/components/chat/TeamChatRoom';
 import SmartPuttingAssistantBlock from '@/components/blocks/golf/SmartPuttingAssistantBlock';
 import SmartPinFinderBlock from '@/components/blocks/golf/SmartPinFinderBlock';
-import SmallBizBlock from '@/components/blocks/SmallBizBlock';
+import { LaborShieldBlock } from '@/components/blocks/LaborShieldBlock';
+import { NoShowZeroBlock } from '@/components/blocks/NoShowZeroBlock';
+import { QuickQuoteBlock } from '@/components/blocks/QuickQuoteBlock';
+import { PayCollectorBlock } from '@/components/blocks/PayCollectorBlock';
+import { MarginGuardBlock } from '@/components/blocks/MarginGuardBlock';
 
 const BLOCK_REGISTRY: Record<string, React.FC<any>> = {
   AnnouncementBlock, CommunityBlock, ScheduleBlock, ExpenseSettlementBlock, WellnessBlock,
@@ -44,7 +48,11 @@ const BLOCK_REGISTRY: Record<string, React.FC<any>> = {
   KanbanTaskBlock,
   SmartPuttingAssistantBlock,
   SmartPinFinderBlock,
-  SmallBizBlock
+  LaborShieldBlock,
+  NoShowZeroBlock,
+  QuickQuoteBlock,
+  PayCollectorBlock,
+  MarginGuardBlock
 };
 
 function SortableItem({ id, children, isManager }: { id: string, children: React.ReactNode, isManager: boolean }) {
