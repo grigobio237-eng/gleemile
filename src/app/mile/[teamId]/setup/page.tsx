@@ -313,8 +313,10 @@ export default function TeamSetupPage() {
       const iconRef = ref(storage, `teams/${teamId}/icon.webp`);
       await uploadString(iconRef, webpDataUrl, 'data_url');
       const downloadURL = await getDownloadURL(iconRef);
+      // 동일한 파일명(icon.webp)으로 덮어쓰기 되므로, 브라우저/Next.js 이미지 캐싱을 우회하기 위해 타임스탬프 추가
+      const urlWithTimestamp = `${downloadURL}&ts=${Date.now()}`;
       
-      setTeamIcon(downloadURL);
+      setTeamIcon(urlWithTimestamp);
     } catch (error) {
       console.error('Image upload failed:', error);
       alert('이미지 업로드에 실패했습니다.');
