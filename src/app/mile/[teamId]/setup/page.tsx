@@ -16,7 +16,7 @@ import {
   GraduationCap, BookOpen, ThumbsUp, Timer, CalendarCheck,
   Target, KanbanSquare, RefreshCw, ActivitySquare, ClipboardList,
   Flame, Image, FileVideo, Scale, Crown, ChevronDown, UserCircle2, Flag,
-  GripHorizontal
+  GripHorizontal, Briefcase
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -47,8 +47,8 @@ const AVAILABLE_MODULES = [
   { id: 'ClassAttendanceBlock', category: 'study', label: '참석 예약', description: '독립형 참석 예약(RSVP) 및 모임 인원 관리.', icon: GraduationCap, color: 'text-violet-500', bg: 'bg-violet-50' },
 
   // 비즈니스
-
-  { id: 'KanbanTaskBlock', category: 'business', label: '업무현황', description: '할 일, 진행 중, 완료 작업 관리.', icon: KanbanSquare, color: 'text-indigo-600', bg: 'bg-indigo-50' }
+  { id: 'KanbanTaskBlock', category: 'business', label: '업무현황', description: '할 일, 진행 중, 완료 작업 관리.', icon: KanbanSquare, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+  { id: 'SmallBizBlock', category: 'business', label: '소상공인 도구', description: '업종별 맞춤형 도구(노무, 예약금, 견적 등).', icon: Briefcase, color: 'text-emerald-600', bg: 'bg-emerald-50' }
 ];
 
 const CATEGORY_TABS = [
