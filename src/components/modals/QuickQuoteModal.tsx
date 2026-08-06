@@ -86,6 +86,7 @@ function NewQuoteFlow({ teamId }: { teamId: string }) {
   const [items, setItems] = useState<QuoteItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  const [alimtalkSuccess, setAlimtalkSuccess] = useState<boolean | undefined>(undefined);
   const [copied, setCopied] = useState(false);
 
   const totalAmount = items.reduce((s, i) => s + i.total, 0);
@@ -145,8 +146,13 @@ function NewQuoteFlow({ teamId }: { teamId: string }) {
         clientName, clientPhone, siteAddress,
         items, beforePhotoUrls: photos,
       });
-      const { shareUrl: url } = await sendQuoteToClient(teamId, quote.id);
-      setShareUrl(url);
+      const result = await sendQuoteToClient(teamId, quote.id);
+      setShareUrl(result.shareUrl);
+      setAlimtalkSuccess(result.alimtalkSuccess);
+      
+      if (!result.alimtalkSuccess) {
+        alert('알림톡 발송에 실패했습니다. 아래 링크를 직접 공유해 주세요.');
+      }
     } catch (e) {
       alert('견적서 생성 중 오류가 발생했습니다.');
     } finally {
@@ -173,9 +179,22 @@ function NewQuoteFlow({ teamId }: { teamId: string }) {
           {copied ? <CheckCheck className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
           {copied ? '복사됨!' : '링크 복사'}
         </button>
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-          <p className="text-xs text-amber-700">💡 <strong>[Mock 모드]</strong> 카카오 알림톡 API 연동 시 자동 발송됩니다.</p>
-        </div>
+
+        {!alimtalkSuccess && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+            <p className="text-xs text-red-700">
+              ⚠️ <strong>알림톡 자동 발송 실패:</strong> 고객에게 견적 링크를 직접 전달해 주세요.
+            </p>
+          </div>
+        )}
+
+        {alimtalkSuccess && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <p className="text-xs text-amber-700">
+              💡 고객에게 카카오 알림톡이 발송되었습니다.
+            </p>
+          </div>
+        )}
       </div>
     );
   }

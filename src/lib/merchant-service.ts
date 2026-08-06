@@ -82,23 +82,28 @@ export async function sendAlimtalk(payload: AlimtalkPayload): Promise<{
   messageId: string;
   shareUrl: string;       // 복사해서 직접 공유할 수 있는 URL
 }> {
-  // [MOCK] 500ms 딜레이로 실제 API 호출 시뮬레이션
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  try {
+    const response = await fetch('/api/merchant/alimtalk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
-  const shareUrl = payload.webLink || `https://gleemile.com/link/${Date.now()}`;
+    const data = await response.json();
+    
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || 'Failed to send Alimtalk');
+    }
 
-  console.log('[MOCK] 알림톡 발송:', {
-    phone: payload.recipientPhone,
-    template: payload.templateCode,
-    variables: payload.variables,
-    shareUrl,
-  });
-
-  return {
-    success: true,
-    messageId: `mock_${Date.now()}`,
-    shareUrl,
-  };
+    return {
+      success: true,
+      messageId: data.messageId,
+      shareUrl: data.shareUrl,
+    };
+  } catch (error: any) {
+    console.error('sendAlimtalk Error:', error);
+    throw error;
+  }
 }
 
 // ════════════════════════════════════════════════════════
@@ -116,27 +121,17 @@ export interface PaymentLinkOptions {
 }
 
 /**
- * [MOCK] 결제 링크 생성 시뮬레이션
+ * [MOCK -> API] 결제 링크 생성
  */
 export async function createPaymentLink(options: PaymentLinkOptions): Promise<{
   paymentLinkUrl: string;
   orderId: string;
   expiresAt: Date;
 }> {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  const expiresAt = new Date();
-  expiresAt.setMinutes(expiresAt.getMinutes() + (options.expiresInMinutes ?? 15));
-
-  const mockUrl = `https://gleemile.com/pay/${options.orderId}?amount=${options.amount}&name=${encodeURIComponent(options.orderName)}`;
-
-  console.log('[MOCK] 결제 링크 생성:', mockUrl);
-
-  return {
-    paymentLinkUrl: mockUrl,
-    orderId: options.orderId,
-    expiresAt,
-  };
+  // 클라이언트에서 서비스 팩토리(Mock) 직접 호출 (향후 API Route로 분리 권장)
+  // 임시로 클라이언트에서도 돌아가도록 구현된 서비스 레이어 클래스를 재활용합니다.
+  const { paymentService } = await import('@/services/payment');
+  return await paymentService.createLink(options);
 }
 
 // ════════════════════════════════════════════════════════
@@ -145,14 +140,16 @@ export async function createPaymentLink(options: PaymentLinkOptions): Promise<{
 
 export async function createDepositBooking(
   teamId: string,
-  data: Pick<NoShowBooking, 'clientName' | 'serviceName' | 'depositAmount'>
-): Promise<NoShowBooking> {
+  data: Pick<NoShowBooking, 'clientName' | 'clientPhone' | 'serviceName' | 'depositAmount'>
+): Promise<NoShowBooking & { alimtalkSuccess?: boolean }> {
   const expiresAt = new Date();
   expiresAt.setMinutes(expiresAt.getMinutes() + 15);
 
-  // [MOCK] 결제 링크 생성
+  const orderId = `booking_${Date.now()}`;
+
+  // 결제 링크 생성
   const { paymentLinkUrl } = await createPaymentLink({
-    orderId: `booking_${Date.now()}`,
+    orderId,
     orderName: `${data.serviceName} 예약금`,
     amount: data.depositAmount,
     customerName: data.clientName,
@@ -169,9 +166,28 @@ export async function createDepositBooking(
   };
 
   const colRef = collection(db, `teams/${teamId}/noshow_bookings`);
-  const docRef = await addDoc(colRef, booking);
+  // Firestore에 orderId 속성도 추가로 저장 (Webhook 조회용)
+  const docRef = await addDoc(colRef, { ...booking, orderId });
 
-  return { id: docRef.id, ...booking };
+  // 알림톡 발송 (DEPOSIT_REQ)
+  let alimtalkSuccess = false;
+  try {
+    const result = await sendAlimtalk({
+      recipientPhone: data.clientPhone,
+      templateCode: 'DEPOSIT_REQ',
+      variables: {
+        clientName: data.clientName,
+        serviceName: data.serviceName,
+        depositAmount: data.depositAmount.toLocaleString(),
+      },
+      webLink: paymentLinkUrl,
+    });
+    alimtalkSuccess = result.success;
+  } catch (err) {
+    console.error('Alimtalk send failed:', err);
+  }
+
+  return { id: docRef.id, ...booking, alimtalkSuccess };
 }
 
 export async function getMemberships(teamId: string): Promise<MembershipCard[]> {
@@ -255,7 +271,7 @@ export async function createQuote(
 export async function sendQuoteToClient(
   teamId: string,
   quoteId: string
-): Promise<{ shareUrl: string }> {
+): Promise<{ shareUrl: string; alimtalkSuccess: boolean }> {
   const ref = doc(db, `teams/${teamId}/quotes`, quoteId);
   const snap = await getDoc(ref);
   if (!snap.exists()) throw new Error('견적서를 찾을 수 없습니다.');
@@ -263,20 +279,25 @@ export async function sendQuoteToClient(
   const quote = snap.data() as Quote;
   const shareUrl = `https://gleemile.com/quote/${teamId}/${quoteId}`;
 
-  // [MOCK] 알림톡 발송
-  const result = await sendAlimtalk({
-    recipientPhone: quote.clientPhone,
-    templateCode: 'QUOTE_SENT',
-    variables: {
-      clientName: quote.clientName,
-      totalAmount: quote.totalAmount.toLocaleString(),
-    },
-    webLink: shareUrl,
-  });
+  let alimtalkSuccess = false;
+  try {
+    const result = await sendAlimtalk({
+      recipientPhone: quote.clientPhone,
+      templateCode: 'QUOTE_SENT',
+      variables: {
+        clientName: quote.clientName,
+        totalAmount: quote.totalAmount.toLocaleString(),
+      },
+      webLink: shareUrl,
+    });
+    alimtalkSuccess = result.success;
+  } catch (err) {
+    console.error('Alimtalk send failed:', err);
+  }
 
   await updateDoc(ref, { status: 'sent', updatedAt: new Date() });
 
-  return { shareUrl: result.shareUrl };
+  return { shareUrl, alimtalkSuccess };
 }
 
 export async function getQuotes(teamId: string): Promise<Quote[]> {
@@ -293,7 +314,7 @@ export async function getQuotes(teamId: string): Promise<Quote[]> {
 export async function createReceivable(
   teamId: string,
   data: Pick<Receivable, 'clientName' | 'clientPhone' | 'description' | 'amount' | 'dueDate'>
-): Promise<Receivable> {
+): Promise<Receivable & { alimtalkSuccess?: boolean; shareUrl?: string }> {
   const receivable: Omit<Receivable, 'id'> = {
     ...data,
     status: 'unpaid',
@@ -303,20 +324,26 @@ export async function createReceivable(
 
   const docRef = await addDoc(collection(db, `teams/${teamId}/receivables`), receivable);
 
-  // [MOCK] 최초 청구 알림톡 발송
+  // 최초 청구 알림톡 발송
   const shareUrl = `https://gleemile.com/pay/${docRef.id}?amount=${data.amount}`;
-  await sendAlimtalk({
-    recipientPhone: data.clientPhone,
-    templateCode: 'BILL_CREATED',
-    variables: {
-      clientName: data.clientName,
-      description: data.description,
-      amount: data.amount.toLocaleString(),
-    },
-    webLink: shareUrl,
-  });
+  let alimtalkSuccess = false;
+  try {
+    const result = await sendAlimtalk({
+      recipientPhone: data.clientPhone,
+      templateCode: 'BILL_CREATED',
+      variables: {
+        clientName: data.clientName,
+        description: data.description,
+        amount: data.amount.toLocaleString(),
+      },
+      webLink: shareUrl,
+    });
+    alimtalkSuccess = result.success;
+  } catch (err) {
+    console.error('Alimtalk send failed:', err);
+  }
 
-  return { id: docRef.id, ...receivable };
+  return { id: docRef.id, ...receivable, alimtalkSuccess, shareUrl };
 }
 
 export async function getReceivables(teamId: string): Promise<Receivable[]> {
@@ -326,7 +353,7 @@ export async function getReceivables(teamId: string): Promise<Receivable[]> {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Receivable));
 }
 
-export async function sendReminder(teamId: string, receivableId: string): Promise<void> {
+export async function sendReminder(teamId: string, receivableId: string): Promise<{ alimtalkSuccess: boolean; shareUrl: string }> {
   const ref = doc(db, `teams/${teamId}/receivables`, receivableId);
   const snap = await getDoc(ref);
   if (!snap.exists()) throw new Error('청구 건을 찾을 수 없습니다.');
@@ -338,22 +365,30 @@ export async function sendReminder(teamId: string, receivableId: string): Promis
   const templateCode = newCount === 1 ? 'REMINDER_1ST' : 'REMINDER_2ND';
   const shareUrl = `https://gleemile.com/pay/${receivableId}?amount=${r.amount}`;
 
-  await sendAlimtalk({
-    recipientPhone: r.clientPhone,
-    templateCode,
-    variables: {
-      clientName: r.clientName,
-      description: r.description,
-      amount: r.amount.toLocaleString(),
-    },
-    webLink: shareUrl,
-  });
+  let alimtalkSuccess = false;
+  try {
+    const result = await sendAlimtalk({
+      recipientPhone: r.clientPhone,
+      templateCode,
+      variables: {
+        clientName: r.clientName,
+        description: r.description,
+        amount: r.amount.toLocaleString(),
+      },
+      webLink: shareUrl,
+    });
+    alimtalkSuccess = result.success;
+  } catch (err) {
+    console.error('Alimtalk send failed:', err);
+  }
 
   await updateDoc(ref, {
     reminderCount: newCount,
     lastReminderAt: new Date(),
     status: 'overdue',
   });
+
+  return { alimtalkSuccess, shareUrl };
 }
 
 export async function markAsPaid(teamId: string, receivableId: string): Promise<void> {

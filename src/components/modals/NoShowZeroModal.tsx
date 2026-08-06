@@ -69,13 +69,13 @@ export default function NoShowZeroModal({ teamId, onClose }: NoShowZeroModalProp
 // 예약금 링크 생성 탭
 // ──────────────────────────────────────
 function BookingTab({ teamId }: { teamId: string }) {
-  const [form, setForm] = useState({ clientName: '', serviceName: '', depositAmount: '' });
+  const [form, setForm] = useState({ clientName: '', clientPhone: '', serviceName: '', depositAmount: '' });
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ url: string; expiresAt: Date } | null>(null);
+  const [result, setResult] = useState<{ url: string; expiresAt: Date; alimtalkSuccess?: boolean } | null>(null);
   const [copied, setCopied] = useState(false);
 
   const handleCreate = async () => {
-    if (!form.clientName || !form.serviceName || !form.depositAmount) {
+    if (!form.clientName || !form.clientPhone || !form.serviceName || !form.depositAmount) {
       alert('모든 항목을 입력해 주세요.');
       return;
     }
@@ -83,10 +83,15 @@ function BookingTab({ teamId }: { teamId: string }) {
     try {
       const booking = await createDepositBooking(teamId, {
         clientName: form.clientName,
+        clientPhone: form.clientPhone,
         serviceName: form.serviceName,
         depositAmount: Number(form.depositAmount),
       });
-      setResult({ url: booking.paymentLinkUrl!, expiresAt: booking.expiresAt });
+      setResult({ url: booking.paymentLinkUrl!, expiresAt: booking.expiresAt, alimtalkSuccess: booking.alimtalkSuccess });
+      
+      if (!booking.alimtalkSuccess) {
+        alert('알림톡 발송에 실패했습니다. 아래 링크를 직접 공유해 주세요.');
+      }
     } catch (e) {
       alert('링크 생성 중 오류가 발생했습니다.');
     } finally {
@@ -103,7 +108,7 @@ function BookingTab({ teamId }: { teamId: string }) {
 
   const handleReset = () => {
     setResult(null);
-    setForm({ clientName: '', serviceName: '', depositAmount: '' });
+    setForm({ clientName: '', clientPhone: '', serviceName: '', depositAmount: '' });
   };
 
   if (result) {
@@ -142,12 +147,21 @@ function BookingTab({ teamId }: { teamId: string }) {
           </button>
         </div>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-          <p className="text-xs text-amber-700">
-            💡 <strong>[Mock 모드]</strong> 실제 카카오 알림톡 API 연동 시 고객에게 자동 발송됩니다.
-            현재는 링크를 복사해 직접 공유해 주세요.
-          </p>
-        </div>
+        {!result.alimtalkSuccess && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+            <p className="text-xs text-red-700">
+              ⚠️ <strong>알림톡 자동 발송 실패:</strong> 고객에게 결제 링크를 직접 전달해 주세요.
+            </p>
+          </div>
+        )}
+
+        {result.alimtalkSuccess && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <p className="text-xs text-amber-700">
+              💡 고객에게 카카오 알림톡이 발송되었습니다.
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -161,6 +175,7 @@ function BookingTab({ teamId }: { teamId: string }) {
 
       {[
         { key: 'clientName', label: '고객명', placeholder: '예: 김아무개', type: 'text' },
+        { key: 'clientPhone', label: '연락처', placeholder: '예: 010-0000-0000', type: 'tel' },
         { key: 'serviceName', label: '시술명', placeholder: '예: 힐링 마사지 60분', type: 'text' },
         { key: 'depositAmount', label: '예약금 (원)', placeholder: '예: 10000', type: 'number' },
       ].map(({ key, label, placeholder, type }) => (

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  X, DollarSign, Plus, Loader2, Send, CheckCircle2, AlertCircle, Clock
+  X, DollarSign, Plus, Loader2, Send, CheckCircle2, AlertCircle, Clock, Copy
 } from 'lucide-react';
 import {
   createReceivable, getReceivables, sendReminder, markAsPaid
@@ -77,6 +77,9 @@ function NewBillTab({ teamId, onCreated }: { teamId: string; onCreated: () => vo
   });
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [alimtalkSuccess, setAlimtalkSuccess] = useState<boolean | undefined>(undefined);
+  const [shareUrl, setShareUrl] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const handleSubmit = async () => {
     if (!form.clientName || !form.clientPhone || !form.description || !form.amount || !form.dueDate) {
@@ -85,15 +88,22 @@ function NewBillTab({ teamId, onCreated }: { teamId: string; onCreated: () => vo
     }
     setLoading(true);
     try {
-      await createReceivable(teamId, {
+      const result = await createReceivable(teamId, {
         clientName: form.clientName,
         clientPhone: form.clientPhone,
         description: form.description,
         amount: Number(form.amount),
         dueDate: new Date(form.dueDate),
       });
+      setAlimtalkSuccess(result.alimtalkSuccess);
+      setShareUrl(result.shareUrl || '');
       setDone(true);
-      setTimeout(onCreated, 1500);
+      
+      if (result.alimtalkSuccess) {
+        setTimeout(onCreated, 1500);
+      } else {
+        alert('알림톡 발송에 실패했습니다. 아래 링크를 직접 공유해 주세요.');
+      }
     } catch (e) {
       alert('청구서 발송 중 오류가 발생했습니다.');
     } finally {
@@ -103,12 +113,38 @@ function NewBillTab({ teamId, onCreated }: { teamId: string; onCreated: () => vo
 
   if (done) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 animate-in fade-in">
+      <div className="flex flex-col items-center justify-center py-8 animate-in fade-in">
         <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
           <CheckCircle2 className="w-8 h-8 text-emerald-500" />
         </div>
         <h3 className="font-black text-emerald-700 text-lg">청구서가 발송되었습니다!</h3>
-        <p className="text-sm text-slate-500 mt-1">미납 현황 탭에서 확인하세요.</p>
+        <p className="text-sm text-slate-500 mt-1 mb-4">미납 현황 탭에서 확인하세요.</p>
+        
+        {!alimtalkSuccess && shareUrl && (
+          <div className="w-full text-left space-y-3">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+              <p className="text-xs text-red-700">
+                ⚠️ <strong>알림톡 발송 실패:</strong> 결제 링크를 직접 전달해 주세요.
+              </p>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <p className="text-sm text-slate-700 break-all font-mono">{shareUrl}</p>
+            </div>
+            <button
+              onClick={() => { navigator.clipboard.writeText(shareUrl); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+              className={`w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold text-sm transition-all ${copied ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+            >
+              {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              {copied ? '복사됨!' : '링크 복사'}
+            </button>
+            <button
+              onClick={onCreated}
+              className="w-full py-3 rounded-2xl text-slate-500 font-bold text-sm hover:bg-slate-100"
+            >
+              목록으로 돌아가기
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -182,9 +218,14 @@ function ReceivableListTab({ teamId }: { teamId: string }) {
   const handleReminder = async (id: string) => {
     setActionId(id);
     try {
-      await sendReminder(teamId, id);
+      const result = await sendReminder(teamId, id);
       await load();
-      alert('재독촉 메시지가 발송되었습니다!');
+      if (result.alimtalkSuccess) {
+        alert('재독촉 메시지가 발송되었습니다!');
+      } else {
+        alert('알림톡 발송에 실패했습니다. 결제 링크를 복사하여 직접 전달해주세요.\n\n결제 링크: ' + result.shareUrl);
+        navigator.clipboard.writeText(result.shareUrl);
+      }
     } catch (e: any) {
       alert(e.message || '오류가 발생했습니다.');
     } finally {

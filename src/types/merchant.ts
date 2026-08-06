@@ -129,6 +129,7 @@ export const INDUSTRY_META: IndustryMeta[] = [
 export interface NoShowBooking {
   id: string;
   clientName: string;
+  clientPhone: string;
   serviceName: string;
   depositAmount: number;        // 예약금
   expiresAt: Date;              // 결제 유효기한 (15분)
