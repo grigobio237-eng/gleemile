@@ -315,7 +315,11 @@ export default function TeamSetupPage() {
       const downloadURL = await getDownloadURL(iconRef);
       // 동일한 파일명(icon.webp)으로 덮어쓰기 되므로, 브라우저/Next.js 이미지 캐싱을 우회하기 위해 타임스탬프 추가
       const urlWithTimestamp = `${downloadURL}&ts=${Date.now()}`;
-      
+
+      // 업로드 즉시 Firestore에 저장 (최종 저장 버튼 클릭 전에도 반영되도록)
+      const teamRef = doc(db, 'teams', teamId);
+      await updateDoc(teamRef, { teamIcon: downloadURL });
+
       setTeamIcon(urlWithTimestamp);
     } catch (error) {
       console.error('Image upload failed:', error);
