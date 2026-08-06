@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileSignature, FileText, Plus, Clock, CheckCircle2 } from 'lucide-react';
+import { FileSignature, FileText, Plus, Clock, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { getTeamLaborContracts } from '@/lib/labor-service';
 
 interface PageProps {
@@ -23,6 +23,10 @@ export default async function LaborShieldDashboard({ params }: PageProps) {
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6 max-w-5xl">
+      <Link href={`/mile/${teamId}/dashboard`} className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
+        <ArrowLeft className="w-4 h-4 mr-1" />
+        대시보드로 돌아가기
+      </Link>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
