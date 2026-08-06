@@ -125,6 +125,8 @@ export default function TeamSetupPage() {
   const [saving, setSaving] = useState(false);
   
   const [iconUploading, setIconUploading] = useState(false);
+  const [iconSaving, setIconSaving] = useState(false);
+  const [pendingIconUrl, setPendingIconUrl] = useState<string>(''); // 업로드됐지만 아직 Firestore에 저장 안 된 URL
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -295,7 +297,6 @@ export default function TeamSetupPage() {
 
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      // 최대 256x256 해상도로 리사이징
       const MAX_SIZE = 256;
       let width = img.width;
       let height = img.height;
@@ -307,25 +308,38 @@ export default function TeamSetupPage() {
       canvas.width = width;
       canvas.height = height;
       ctx?.drawImage(img, 0, 0, width, height);
-      
+
       const webpDataUrl = canvas.toDataURL('image/webp', 0.8);
-      
+
       const iconRef = ref(storage, `teams/${teamId}/icon.webp`);
       await uploadString(iconRef, webpDataUrl, 'data_url');
       const downloadURL = await getDownloadURL(iconRef);
-      // 동일한 파일명(icon.webp)으로 덮어쓰기 되므로, 브라우저/Next.js 이미지 캐싱을 우회하기 위해 타임스탬프 추가
       const urlWithTimestamp = `${downloadURL}&ts=${Date.now()}`;
 
-      // 업로드 즉시 Firestore에 저장 (최종 저장 버튼 클릭 전에도 반영되도록)
-      const teamRef = doc(db, 'teams', teamId);
-      await updateDoc(teamRef, { teamIcon: downloadURL });
-
+      // Storage 업로드 후 프리뷰에만 반영 — Firestore 저장은 아래 "대표 이미지로 등록" 버튼 클릭 시
       setTeamIcon(urlWithTimestamp);
+      setPendingIconUrl(downloadURL); // Firestore 저장 대기 URL
     } catch (error) {
       console.error('Image upload failed:', error);
       alert('이미지 업로드에 실패했습니다.');
     } finally {
       setIconUploading(false);
+    }
+  };
+
+  const handleRegisterIcon = async () => {
+    if (!pendingIconUrl || !teamId) return;
+    setIconSaving(true);
+    try {
+      const teamRef = doc(db, 'teams', teamId);
+      await updateDoc(teamRef, { teamIcon: pendingIconUrl });
+      setPendingIconUrl(''); // 등록 완료 후 대기 상태 초기화
+      alert('대표 이미지가 등록되었습니다!');
+    } catch (error) {
+      console.error('Icon register failed:', error);
+      alert('대표 이미지 등록에 실패했습니다.');
+    } finally {
+      setIconSaving(false);
     }
   };
 
@@ -403,7 +417,7 @@ export default function TeamSetupPage() {
               </div>
             )}
           </div>
-          <div className="shrink-0 flex flex-col items-center">
+          <div className="shrink-0 flex flex-col items-center gap-3">
             <div className="w-24 h-24 rounded-3xl bg-slate-50 border border-slate-200 shadow-inner flex items-center justify-center overflow-hidden relative">
               {iconUploading ? (
                 <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
@@ -417,7 +431,18 @@ export default function TeamSetupPage() {
                 <span className="text-3xl font-black text-slate-300">{teamName.charAt(0)}</span>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-2 font-bold uppercase tracking-widest">Preview</p>
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Preview</p>
+            {/* 업로드 후 Firestore 저장 확인 버튼 */}
+            {pendingIconUrl && (
+              <button
+                onClick={handleRegisterIcon}
+                disabled={iconSaving}
+                className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/30 transition-all animate-in fade-in zoom-in-95 duration-200 disabled:opacity-60"
+              >
+                {iconSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : '✓'}
+                대표 이미지로 등록
+              </button>
+            )}
           </div>
         </section>
 
