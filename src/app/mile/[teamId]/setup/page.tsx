@@ -29,7 +29,7 @@ import { CSS } from '@dnd-kit/utilities';
 const AVAILABLE_MODULES = [
   // 공통
   { id: 'AnnouncementBlock', category: 'common', label: '공지사항', description: '팀의 중요 공지를 띄워줍니다.', icon: Megaphone, color: 'text-indigo-500', bg: 'bg-indigo-50' },
-  { id: 'CommunityBlock', category: 'common', label: '커뮤니티', description: '팀원 간 자유로운 소통 공간.', icon: MessageCircle, color: 'text-blue-500', bg: 'bg-blue-50' },
+  { id: 'CommunityBlock', category: 'common', label: '커뮤니티', description: '팀 전용 단체 대화방입니다.', icon: MessageCircle, color: 'text-blue-500', bg: 'bg-blue-50' },
   { id: 'ScheduleBlock', category: 'common', label: '일정 관리', description: '팀 캘린더 및 일정 투표 기능.', icon: Calendar, color: 'text-emerald-500', bg: 'bg-emerald-50' },
   { id: 'ExpenseSettlementBlock', category: 'common', label: '회비/비용 정산', description: 'N빵 정산과 회비 내역 공유.', icon: DollarSign, color: 'text-yellow-600', bg: 'bg-yellow-50' },
   { id: 'WellnessBlock', category: 'common', label: '웰니스 컨디션', description: '멤버들의 피로도와 웰니스 기록.', icon: HeartPulse, color: 'text-rose-500', bg: 'bg-rose-50' },
@@ -69,6 +69,70 @@ const CATEGORY_TABS = [
 const PREDEFINED_EMOJIS = ['🚀', '⚽', '🎨', '💼', '🏆', '🔥', '💡', '🌟', '📚', '💪'];
 
 const MODULE_DETAILS: Record<string, { title: string; subtitle: string; target: string; purpose: string; usage: string[] }> = {
+  AnnouncementBlock: {
+    title: '공지사항 (Announcements)',
+    subtitle: '팀의 중요 공지를 띄워줍니다.',
+    target: '중요한 소식을 팀원(회원) 모두가 놓치지 않고 봐야 하는 팀',
+    purpose: '단톡방에서 중요한 메시지가 위로 밀려나 못 보는 일을 방지하고, 필독 사항을 대시보드 최상단에 고정합니다.',
+    usage: [
+      '관리자(운영진)가 대시보드의 공지사항 블록에서 [새 공지 작성] 버튼을 누릅니다.',
+      '제목과 내용을 적어 등록하면 팀원들의 대시보드에 즉시 노출됩니다.',
+      '새 공지가 등록되면 팀원들에게 알림톡이나 푸시 알림을 보낼 수도 있습니다.'
+    ]
+  },
+  CommunityBlock: {
+    title: '커뮤니티 (Community)',
+    subtitle: '팀 전용 단체 대화방입니다.',
+    target: '자유로운 의견 교환이나 투표, 일상 공유가 필요한 팀',
+    purpose: '카카오톡 단톡방을 대체하거나 보완하는 팀 전용 단체 대화방입니다.',
+    usage: [
+      '누구나 자유롭게 글을 쓰고 사진을 올릴 수 있습니다.',
+      '댓글을 달며 소통하고, 중요한 안건이 있을 때는 투표 기능을 활용해 다수결 의견을 모을 수 있습니다.'
+    ]
+  },
+  ScheduleBlock: {
+    title: '일정 관리 (Schedule)',
+    subtitle: '팀 캘린더 및 일정 투표 기능',
+    target: '정기 모임, 회의, 행사 등 오프라인/온라인 일정이 있는 팀',
+    purpose: '캘린더 형태로 팀의 전체 일정을 공유하고, 각 일정별로 참석/불참 투표를 받아 인원을 파악합니다.',
+    usage: [
+      '운영진이 다가오는 일시, 장소, 회비 정보를 넣어 새 일정을 만듭니다.',
+      '팀원들은 캘린더에서 일정을 클릭한 후 [참석] 또는 [불참] 버튼을 눌러 의사를 밝힙니다.',
+      '운영진은 누가 오는지, 총 몇 명인지 실시간 명단으로 확인할 수 있습니다.'
+    ]
+  },
+  ExpenseSettlementBlock: {
+    title: '회비/비용 정산 (Settlement)',
+    subtitle: 'N빵 정산과 회비 내역 공유',
+    target: '월정액 회비를 걷거나, 모임 후 1/N로 비용을 정산해야 하는 팀',
+    purpose: '시스템으로 자동 기록하고, 미납자에게 정중하게 청구합니다.',
+    usage: [
+      '전체 회식이나 행사 후, 총 지출 금액과 참석자 명단을 선택하여 정산방을 만듭니다.',
+      '시스템이 1/N 금액을 자동 계산하여 카카오톡으로 각자에게 송금 요청을 보냅니다.',
+      '입금이 완료된 사람은 [완료] 버튼을 눌러 투명하게 내역을 관리합니다.'
+    ]
+  },
+  WellnessBlock: {
+    title: '웰니스 컨디션 (Wellness)',
+    subtitle: '멤버들의 피로도와 웰니스 기록',
+    target: '팀원들의 현재 기분, 스트레스, 피로도 관리가 중요한 팀',
+    purpose: '팀원들이 그날그날의 컨디션을 기록하게 하여, 번아웃이나 부상 위험을 조기에 감지하도록 돕습니다.',
+    usage: [
+      '팀원들이 매일 아침이나 활동 전, 1~5점 척도로 자신의 피로도, 수면의 질 등을 체크합니다.',
+      '리더는 대시보드에서 팀원들의 컨디션 신호등을 한눈에 파악하고 무리한 활동을 조율할 수 있습니다.'
+    ]
+  },
+  PlayersBlock: {
+    title: '회원 명단 (Members)',
+    subtitle: '우리 모임 회원들의 프로필 관리',
+    target: '팀원들의 연락처나 비상 연락망, 프로필 관리가 필요한 모든 팀',
+    purpose: '우리 팀에 속한 사람들의 이름, 연락처, 가입일, 등급을 한눈에 조회하는 디지털 주소록입니다.',
+    usage: [
+      '대시보드에서 회원 명단 블록을 누르면 전체 팀원 리스트가 뜹니다.',
+      '각 멤버를 클릭하면 상세 프로필(전화번호 등)을 볼 수 있습니다.',
+      '리더는 여기서 멤버를 강퇴하거나, 등급(관리자 권한 부여)을 변경할 수 있습니다.'
+    ]
+  },
   LaborShieldBlock: {
     title: '노무 방어 (Labor-Shield)',
     subtitle: '전자근로계약서 · 노무 방어',
@@ -254,9 +318,8 @@ export default function TeamSetupPage() {
           // If already has modules set
           setEnabledModules(data.enabledModules);
         } else {
-          // Default selection: common + template specific
-          const defaults = AVAILABLE_MODULES.filter(m => m.category === 'common' || m.category === template).map(m => m.id);
-          setEnabledModules(defaults);
+          // Default selection: empty (disabled by default)
+          setEnabledModules([]);
         }
       }
     } catch (e) {
