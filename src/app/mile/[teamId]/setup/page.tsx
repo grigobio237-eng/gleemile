@@ -16,7 +16,7 @@ import {
   GraduationCap, BookOpen, ThumbsUp, Timer, CalendarCheck,
   Target, KanbanSquare, RefreshCw, ActivitySquare, ClipboardList,
   Flame, Image, FileVideo, Scale, Crown, ChevronDown, UserCircle2, Flag,
-  GripHorizontal, Briefcase, Shield, CalendarX2, FileText
+  GripHorizontal, Briefcase, Shield, CalendarX2, FileText, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -50,11 +50,11 @@ const AVAILABLE_MODULES = [
   { id: 'KanbanTaskBlock', category: 'business', label: '업무현황', description: '할 일, 진행 중, 완료 작업 관리.', icon: KanbanSquare, color: 'text-indigo-600', bg: 'bg-indigo-50' },
   
   // 소상공인
-  { id: 'LaborShieldBlock', category: 'merchant', label: 'Labor-Shield', description: '전자근로계약서 · 노무 방어', icon: Shield, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-  { id: 'NoShowZeroBlock', category: 'merchant', label: 'NoShow-Zero', description: '예약금 · 노쇼 방지 · 회원권', icon: CalendarX2, color: 'text-pink-600', bg: 'bg-pink-50' },
-  { id: 'QuickQuoteBlock', category: 'merchant', label: 'Quick-Quote', description: '1분 사진 견적서 · AS 방어', icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
-  { id: 'PayCollectorBlock', category: 'merchant', label: 'Pay-Collector', description: '미수금 · 원비 자동 청구', icon: DollarSign, color: 'text-violet-600', bg: 'bg-violet-50' },
-  { id: 'MarginGuardBlock', category: 'merchant', label: 'Margin-Guard', description: '실질 마진율 · BEP 계산기', icon: Scale, color: 'text-orange-600', bg: 'bg-orange-50' }
+  { id: 'LaborShieldBlock', category: 'merchant', label: '노무 방어 (Labor-Shield)', description: '전자근로계약서 · 노무 방어', icon: Shield, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+  { id: 'NoShowZeroBlock', category: 'merchant', label: '예약금/회원권 (NoShow-Zero)', description: '식당, 미용실 등 예약금 · 노쇼 방지 · 회원권', icon: CalendarX2, color: 'text-pink-600', bg: 'bg-pink-50' },
+  { id: 'QuickQuoteBlock', category: 'merchant', label: '사진 견적서 (Quick-Quote)', description: '1분 사진 견적서 · AS 방어', icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
+  { id: 'PayCollectorBlock', category: 'merchant', label: '미수금 청구 (Pay-Collector)', description: '미수금 · 원비 자동 청구', icon: DollarSign, color: 'text-violet-600', bg: 'bg-violet-50' },
+  { id: 'MarginGuardBlock', category: 'merchant', label: '마진 계산기 (Margin-Guard)', description: '실질 마진율 · BEP 계산기', icon: Scale, color: 'text-orange-600', bg: 'bg-orange-50' }
 ];
 
 const CATEGORY_TABS = [
@@ -67,6 +67,63 @@ const CATEGORY_TABS = [
 ];
 
 const PREDEFINED_EMOJIS = ['🚀', '⚽', '🎨', '💼', '🏆', '🔥', '💡', '🌟', '📚', '💪'];
+
+const MODULE_DETAILS: Record<string, { title: string; subtitle: string; target: string; purpose: string; usage: string[] }> = {
+  LaborShieldBlock: {
+    title: '노무 방어 (Labor-Shield)',
+    subtitle: '전자근로계약서 · 노무 방어',
+    target: '알바생이나 파트타임 직원을 자주 고용하는 모든 업종 (특히 요식업, 카페, 편의점 등)',
+    purpose: '근로계약서 미작성으로 인한 과태료(건당 최소 120만 원) 리스크를 원천 차단하고, 주휴수당을 정확히 계산합니다.',
+    usage: [
+      '모듈을 열고 직원의 시급, 근무 요일, 시간을 입력합니다.',
+      '직원의 전화번호를 넣고 [전송]을 누르면, 알바생의 카카오톡으로 근로계약서 전자서명 링크가 날아갑니다.',
+      '알바생이 스마트폰으로 서명하면 계약서 PDF가 자동으로 서버에 영구 보관되며 사장님과 알바생 모두에게 교부됩니다.'
+    ]
+  },
+  NoShowZeroBlock: {
+    title: '예약금/회원권 (NoShow-Zero)',
+    subtitle: '식당, 미용실 등 예약금 · 노쇼 방지 · 회원권',
+    target: '100% 예약제로 운영되며 노쇼가 치명적인 업종 (식당, 미용실, 네일샵, 피부관리, PT 등)',
+    purpose: '노쇼(예약 부도)를 방지하기 위해 예약금을 미리 결제받고, 기존 단골들의 선불 회원권(횟수권)을 차감 형태로 관리합니다.',
+    usage: [
+      '전화나 문자로 예약을 잡은 후, 모듈을 열어 고객 이름과 예약금을 입력합니다.',
+      '카카오톡으로 예약금 결제 링크가 고객에게 발송됩니다.',
+      '고객이 15분 내에 결제하면 예약이 확정되고, 결제하지 않으면 자동 취소됩니다.'
+    ]
+  },
+  QuickQuoteBlock: {
+    title: '사진 견적서 (Quick-Quote)',
+    subtitle: '1분 사진 견적서 · AS 방어',
+    target: '현장 방문이나 사진을 보고 견적을 내야 하는 출장 서비스 업종 (인테리어, 설비, 간판, 청소, 세차 등)',
+    purpose: '고객과의 금액 및 AS 분쟁을 방지하기 위해 정식 견적서를 발송하고 법적 효력이 있는 동의를 받습니다.',
+    usage: [
+      '고객이 보낸 수리할 곳의 사진을 업로드하고 견적 금액과 특약 사항을 적습니다.',
+      '고객의 카톡으로 사진이 첨부된 정식 견적서 링크가 발송됩니다.',
+      '고객이 견적서 하단에 [동의 및 진행] 버튼을 누르면 증빙 자료로 자동 저장됩니다.'
+    ]
+  },
+  PayCollectorBlock: {
+    title: '미수금 청구 (Pay-Collector)',
+    subtitle: '미수금 · 원비 자동 청구',
+    target: '월 단위 정기 결제가 있거나, 외상 거래가 잦은 업종 (학원비, 교습소, B2B 도매, 식자재 유통 등)',
+    purpose: '사장님이 직접 독촉할 필요 없이, 시스템이 알아서 미수금을 청구하고 결제를 받아냅니다.',
+    usage: [
+      '모듈에 미납자 이름, 청구 금액, 사유(예: 8월 학원비)를 입력합니다.',
+      '카카오톡으로 미수금 청구서 및 결제 링크가 정중한 멘트와 함께 발송됩니다.',
+      '고객이 링크를 눌러 결제하면, 사장님 대시보드에 즉시 수납 완료로 처리됩니다.'
+    ]
+  },
+  MarginGuardBlock: {
+    title: '마진 계산기 (Margin-Guard)',
+    subtitle: '실질 마진율 · BEP 계산기',
+    target: '배달앱 수수료, 재료비, 인건비가 복잡하게 얽혀 있는 업종 (배달 음식점, 프랜차이즈, 소매업 등)',
+    purpose: '배달앱 수수료, 부가세 등을 모두 떼고 내 주머니에 실제로 얼마가 남는지(실질 마진율)를 정확히 계산해 줍니다.',
+    usage: [
+      '모듈을 열어 주력 메뉴의 판매가, 원가, 포장비, 배달앱 수수료율을 세팅합니다.',
+      '하루 목표 매출이나 고정비를 입력하면, 적자를 면하기 위한 최소 판매량(BEP)을 직관적으로 보여줍니다.'
+    ]
+  }
+};
 
 interface MemberSummary {
   id: string;
@@ -146,6 +203,7 @@ export default function TeamSetupPage() {
   const [teamOwnerId, setTeamOwnerId] = useState('');
   const [roleChanging, setRoleChanging] = useState<string | null>(null); // 변경 중인 멤버 ID
   const [openDropdown, setOpenDropdown] = useState<string | null>(null); // 열린 드롭다운 ID
+  const [infoModalModuleId, setInfoModalModuleId] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -236,14 +294,25 @@ export default function TeamSetupPage() {
   };
 
   const handleToggle = (moduleId: string, checked: boolean) => {
-    setEnabledModules(prev => {
-      if (checked && !prev.includes(moduleId)) {
-        return [...prev, moduleId];
-      } else if (!checked) {
-        return prev.filter(id => id !== moduleId);
+    if (checked) {
+      if (MODULE_DETAILS[moduleId]) {
+        // 상세 안내가 있는 모듈은 모달 띄우기
+        setInfoModalModuleId(moduleId);
+      } else {
+        // 안내가 없는 모듈은 바로 켬
+        setEnabledModules(prev => !prev.includes(moduleId) ? [...prev, moduleId] : prev);
       }
-      return prev;
-    });
+    } else {
+      // 끌 때는 바로 끔
+      setEnabledModules(prev => prev.filter(id => id !== moduleId));
+    }
+  };
+
+  const handleConfirmEnableModule = () => {
+    if (infoModalModuleId) {
+      setEnabledModules(prev => !prev.includes(infoModalModuleId) ? [...prev, infoModalModuleId] : prev);
+      setInfoModalModuleId(null);
+    }
   };
 
   const sensors = useSensors(
@@ -762,6 +831,58 @@ export default function TeamSetupPage() {
         </div>
 
       </div>
+
+      {/* 모듈 안내 모달 */}
+      {infoModalModuleId && MODULE_DETAILS[infoModalModuleId] && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] flex flex-col mx-4">
+            <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+              <div>
+                <h2 className="text-lg font-black text-slate-800">{MODULE_DETAILS[infoModalModuleId].title}</h2>
+                <p className="text-xs text-slate-500 mt-1">{MODULE_DETAILS[infoModalModuleId].subtitle}</p>
+              </div>
+              <button onClick={() => setInfoModalModuleId(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors" aria-label="닫기">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+              <div>
+                <p className="text-xs font-black text-emerald-600 mb-2">🎯 어떤 사장님께 필요한가요?</p>
+                <p className="text-sm text-slate-700 bg-emerald-50 rounded-xl p-4">{MODULE_DETAILS[infoModalModuleId].target}</p>
+              </div>
+              
+              <div>
+                <p className="text-xs font-black text-blue-600 mb-2">💡 주요 용도</p>
+                <p className="text-sm text-slate-700 bg-blue-50 rounded-xl p-4">{MODULE_DETAILS[infoModalModuleId].purpose}</p>
+              </div>
+
+              <div>
+                <p className="text-xs font-black text-slate-800 mb-2">🚀 사용법</p>
+                <ol className="space-y-3 bg-slate-50 rounded-xl p-4">
+                  {MODULE_DETAILS[infoModalModuleId].usage.map((step, idx) => (
+                    <li key={idx} className="flex gap-3 text-sm text-slate-700">
+                      <span className="shrink-0 w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-xs">
+                        {idx + 1}
+                      </span>
+                      <span className="leading-relaxed">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+
+            <div className="px-6 pb-6 pt-4 border-t border-slate-100 shrink-0 flex gap-3">
+              <Button onClick={() => setInfoModalModuleId(null)} variant="outline" className="flex-1 h-12 rounded-xl text-slate-600 font-bold border-slate-200 hover:bg-slate-50">
+                취소
+              </Button>
+              <Button onClick={handleConfirmEnableModule} className="flex-1 h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20">
+                계속 (추가하기)
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
