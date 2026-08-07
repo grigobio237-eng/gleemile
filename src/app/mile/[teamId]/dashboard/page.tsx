@@ -40,6 +40,7 @@ import { NoShowZeroBlock } from '@/components/blocks/NoShowZeroBlock';
 import { QuickQuoteBlock } from '@/components/blocks/QuickQuoteBlock';
 import { PayCollectorBlock } from '@/components/blocks/PayCollectorBlock';
 import { MarginGuardBlock } from '@/components/blocks/MarginGuardBlock';
+import VoiceChatBlock from '@/components/blocks/sports/VoiceChatBlock';
 
 const BLOCK_REGISTRY: Record<string, React.FC<any>> = {
   AnnouncementBlock, CommunityBlock, ScheduleBlock, ExpenseSettlementBlock, WellnessBlock,
@@ -52,7 +53,8 @@ const BLOCK_REGISTRY: Record<string, React.FC<any>> = {
   NoShowZeroBlock,
   QuickQuoteBlock,
   PayCollectorBlock,
-  MarginGuardBlock
+  MarginGuardBlock,
+  VoiceChatBlock
 };
 
 function SortableItem({ id, children, isManager }: { id: string, children: React.ReactNode, isManager: boolean }) {

@@ -42,6 +42,7 @@ const AVAILABLE_MODULES = [
   { id: 'BracketPositionBlock', category: 'sports', label: '전술 보드 및 라인업', description: '실시간 포메이션 전술판 및 라인업.', icon: LayoutTemplate, color: 'text-sky-500', bg: 'bg-sky-50' },
   { id: 'PlayersBlock', category: 'common', label: '회원 명단', description: '우리 모임 회원들의 프로필 관리.', icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50' },
   { id: 'SessionDifficultyBlock', category: 'sports', label: '오늘 모임 어땠나요?', description: '당일 모임 체감 난이도 수렴기.', icon: ShieldAlert, color: 'text-orange-500', bg: 'bg-orange-50' },
+  { id: 'VoiceChatBlock', category: 'sports', label: '실시간 무전기', description: '세나 연동 블루투스 실시간 다자간 통화', icon: MessageCircle, color: 'text-emerald-500', bg: 'bg-emerald-50' },
 
   // 스터디
   { id: 'ClassAttendanceBlock', category: 'study', label: '참석 예약', description: '독립형 참석 예약(RSVP) 및 모임 인원 관리.', icon: GraduationCap, color: 'text-violet-500', bg: 'bg-violet-50' },
@@ -153,6 +154,18 @@ const MODULE_DETAILS: Record<string, { title: string; subtitle: string; target: 
       '대시보드 썸네일에 최근 7일 기준의 할 일, 진행 중, 완료 개수가 실시간으로 표시됩니다.',
       '종료일이 2일 이내로 임박한 미완료 업무는 자동으로 [긴급] 뱃지가 깜빡이며 알림을 줍니다.',
       '썸네일을 클릭하면 상세 칸반보드로 이동하여 카드를 드래그 앤 드롭으로 관리할 수 있습니다.'
+    ]
+  },
+  VoiceChatBlock: {
+    title: '실시간 무전기 (Voice)',
+    subtitle: '딜레이 없는 무제한 다자간 음성 통신',
+    target: '자전거, 오토바이 라이딩 등 실시간 양방향 소통이 필요한 레저/스포츠 동호회',
+    purpose: '거리 제한 없이 인터넷이 연결된 곳이라면 언제 어디서든 세나(Sena)나 에어팟 같은 블루투스 기기와 연동하여 다자간 음성 통화를 할 수 있습니다.',
+    usage: [
+      '대시보드에서 [실시간 무전기] 모듈을 클릭하면 보이스 채널 모달이 열립니다.',
+      '서버 연결 중... 표시가 지나고 자동으로 방에 입장되며, 접속 중인 다른 팀원들의 목록을 확인할 수 있습니다.',
+      '스마트폰을 블루투스 헤드셋과 연결해 두면, 주머니에 폰을 넣은 채로 편하게 대화할 수 있습니다.',
+      '대화를 종료하려면 모달을 닫거나 종료 버튼을 누르면 통화가 끊어집니다.'
     ]
   },
   SmartPinFinderBlock: {
