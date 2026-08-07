@@ -147,27 +147,20 @@ export async function createDepositBooking(
 
   const orderId = `booking_${Date.now()}`;
 
-  // 결제 링크 생성
-  const { paymentLinkUrl } = await createPaymentLink({
-    orderId,
-    orderName: `${data.serviceName} 예약금`,
-    amount: data.depositAmount,
-    customerName: data.clientName,
-    customerPhone: '',
-    expiresInMinutes: 15,
-  });
-
   const booking: Omit<NoShowBooking, 'id'> = {
     ...data,
     expiresAt,
     status: 'pending',
-    paymentLinkUrl,
+    paymentLinkUrl: '',
     createdAt: new Date(),
   };
 
   const colRef = collection(db, `teams/${teamId}/noshow_bookings`);
   // Firestore에 orderId 속성도 추가로 저장 (Webhook 조회용)
   const docRef = await addDoc(colRef, { ...booking, orderId });
+  
+  const paymentLinkUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/pay/${teamId}/${docRef.id}`;
+  await updateDoc(docRef, { paymentLinkUrl });
 
   // 알림톡 발송 (DEPOSIT_REQ)
   let alimtalkSuccess = false;
