@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const openNextDir = path.join(__dirname, '.open-next');
 const assetsDir = path.join(openNextDir, 'assets');
@@ -10,17 +11,12 @@ console.log("Preparing Cloudflare Pages _worker.js directory...");
 // Create _worker.js directory
 fs.mkdirSync(workerDir, { recursive: true });
 
-// Move worker.js to index.js
-fs.copyFileSync(path.join(openNextDir, 'worker.js'), path.join(workerDir, 'index.js'));
-
-// Copy dependencies
-const dirsToCopy = ['cloudflare', 'middleware', 'server-functions', '.build', 'dynamodb-provider', 'cache'];
-for (const dir of dirsToCopy) {
-  const src = path.join(openNextDir, dir);
-  if (fs.existsSync(src)) {
-    fs.cpSync(src, path.join(workerDir, dir), { recursive: true });
-  }
-}
+console.log("Bundling worker using esbuild...");
+// Bundle worker.js into a single index.js file
+execSync(
+  `npx esbuild .open-next/worker.js --bundle --outfile=${path.join(workerDir, 'index.js')} --platform=node --target=es2022 --format=esm --external:node:* --external:cloudflare:*`,
+  { stdio: 'inherit' }
+);
 
 console.log("Creating _routes.json...");
 const routes = {
