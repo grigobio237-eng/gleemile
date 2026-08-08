@@ -51,9 +51,7 @@ export async function GET(
       canPublishData: true,
     });
     
-    // Set TTL to a longer duration (e.g., 4 hours = 4 * 60 * 60 seconds)
-    at.ttl = 4 * 60 * 60;
-    
+
     const token = await at.toJwt();
     
     return NextResponse.json({ token, wsUrl, roomName });
