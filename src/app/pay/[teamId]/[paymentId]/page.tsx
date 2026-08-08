@@ -42,7 +42,8 @@ export default async function PaymentPage({ params }: { params: Promise<{ teamId
   }
 
   // 만료 시간 체크
-  if (booking.expiresAt && new Date(booking.expiresAt.seconds * 1000) < new Date()) {
+  const expiresAt = booking.expiresAt as any;
+  if (expiresAt && (expiresAt.seconds ? new Date(expiresAt.seconds * 1000) : new Date(expiresAt)) < new Date()) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center p-6 bg-white rounded-2xl shadow-sm border border-slate-100 max-w-sm w-full">

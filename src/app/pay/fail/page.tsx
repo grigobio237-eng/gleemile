@@ -2,12 +2,12 @@
 
 import React, { Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
-
-
-function FailContent({ searchParams }: { searchParams: { message?: string; code?: string } }) {
-  const message = searchParams.message || '결제 처리 중 오류가 발생했습니다.';
-  const code = searchParams.code || 'UNKNOWN_ERROR';
+function FailContent() {
+  const searchParams = useSearchParams();
+  const message = searchParams.get('message') || '결제 처리 중 오류가 발생했습니다.';
+  const code = searchParams.get('code') || 'UNKNOWN_ERROR';
 
   return (
     <div className="text-center p-6 bg-white rounded-2xl shadow-sm border border-slate-100 max-w-sm w-full mx-auto mt-20 animate-in fade-in">
@@ -28,11 +28,11 @@ function FailContent({ searchParams }: { searchParams: { message?: string; code?
   );
 }
 
-export default function PayFailPage({ searchParams }: { searchParams: { message?: string; code?: string } }) {
+export default function PayFailPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-start justify-center pt-20 px-4">
       <Suspense fallback={<div>Loading...</div>}>
-        <FailContent searchParams={searchParams} />
+        <FailContent />
       </Suspense>
     </div>
   );
