@@ -22,4 +22,15 @@ for (const dir of dirsToCopy) {
   }
 }
 
+console.log("Creating _routes.json...");
+const routes = {
+  version: 1,
+  include: ["/*"],
+  exclude: ["/_next/static/*", "/favicon.ico"]
+};
+fs.writeFileSync(
+  path.join(assetsDir, '_routes.json'),
+  JSON.stringify(routes, null, 2)
+);
+
 console.log("Done. Ready for Cloudflare Pages deployment.");
