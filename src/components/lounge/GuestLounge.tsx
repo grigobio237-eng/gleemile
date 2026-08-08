@@ -6,14 +6,14 @@ import { db } from '@/lib/firebase';
 import { doc, collection, onSnapshot, query, where, limit, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { JoinRequestModal } from './JoinRequestModal';
 
-function TeamUnreadBadge({ teamId, userId }: { teamId: string, userId: string }) {
+function TeamUnreadBadge({ teamId, userId, role }: { teamId: string, userId: string, role?: string }) {
   const [totalUnread, setTotalUnread] = useState(0);
 
   useEffect(() => {
     if (!teamId || !userId) return;
     let unsubs: (() => void)[] = [];
     
-    const counts = { ann: 0, com: 0, sch: 0, pl: 0, exp: 0, chat: 0, att: 0, lin: 0, kan: 0 };
+    const counts: Record<string, number> = { ann: 0, com: 0, sch: 0, pl: 0, exp: 0, chat: 0, att: 0, lin: 0, kan: 0, myCondition: 0, wellness: 0, join: 0, noShow: 0 };
     const checkTotal = () => {
       const total = Object.values(counts).reduce((a,b) => a+b, 0);
       setTotalUnread(total);
@@ -100,13 +100,42 @@ function TeamUnreadBadge({ teamId, userId }: { teamId: string, userId: string })
       }
     });
 
+    // 4. Other Modules
+    const todayStr = new Date().toISOString().split('T')[0];
+    const qMyCondition = query(collection(db, `teams/${teamId}/conditions`), where('userId', '==', userId), where('date', '==', todayStr));
+    unsubs.push(onSnapshot(qMyCondition, (snap) => {
+      counts.myCondition = snap.empty ? 1 : 0;
+      checkTotal();
+    }));
+
+    const qWellness = query(collection(db, `teams/${teamId}/wellness_submissions`), where('userId', '==', userId), where('date', '==', todayStr));
+    unsubs.push(onSnapshot(qWellness, (snap) => {
+      counts.wellness = snap.empty ? 1 : 0;
+      checkTotal();
+    }));
+
+    const { normalizeRole, isManagerOrHigher } = require('@/types/role');
+    if (role && isManagerOrHigher(normalizeRole(role))) {
+      const qJoinReq = query(collection(db, `teams/${teamId}/join_requests`), where('status', '==', 'pending'));
+      unsubs.push(onSnapshot(qJoinReq, (snap) => {
+        counts.join = snap.size;
+        checkTotal();
+      }));
+
+      const qNoShow = query(collection(db, `teams/${teamId}/noshow_bookings`), where('status', '==', 'paid'));
+      unsubs.push(onSnapshot(qNoShow, (snap) => {
+        counts.noShow = snap.size;
+        checkTotal();
+      }));
+    }
+
     return () => {
       metaUnsub();
       memberMetaUnsub();
       attUnsub();
       unsubs.forEach(u => u());
     };
-  }, [teamId, userId]);
+  }, [teamId, userId, role]);
 
   if (totalUnread === 0) return null;
   return (
@@ -214,7 +243,7 @@ export function GuestLounge({ onCreateTeamClick, onJoinWithCode, status, userId,
                         <div className="w-16 h-16 rounded-3xl bg-white shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden group-hover:shadow-md group-hover:scale-105 group-hover:border-emerald-200 transition-all relative">
                           {iconContent}
                         </div>
-                        {userId && <TeamUnreadBadge teamId={team.id} userId={userId} />}
+                        {userId && <TeamUnreadBadge teamId={team.id} userId={userId} role={team.role} />}
                       </div>
                       <div className="text-center w-full">
                         <h3 className="font-bold text-slate-800 text-[11px] truncate w-full group-hover:text-emerald-700 transition-colors">

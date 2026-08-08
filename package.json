@@ -69,7 +69,6 @@
     "clsx": "^2.0.0",
     "date-fns": "^4.1.0",
     "firebase": "^12.15.0",
-    "firebase-admin": "^13.6.1",
     "framer-motion": "^10.16.4",
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",

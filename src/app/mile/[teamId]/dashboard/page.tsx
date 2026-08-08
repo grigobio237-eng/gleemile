@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { doc, getDoc, collection, query, where, getDocs, onSnapshot, writeBatch, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, onSnapshot, writeBatch, updateDoc, setDoc } from 'firebase/firestore';
 import { limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Loader2, ArrowLeft, UserPlus, LayoutDashboard, AlertCircle, LogOut, GripHorizontal } from 'lucide-react';
@@ -147,6 +147,9 @@ function DashboardContent() {
   const [attendanceUnreadCount, setAttendanceUnreadCount] = useState(0);
   const [lineupUnreadCount, setLineupUnreadCount] = useState(0);
   const [kanbanUnreadCount, setKanbanUnreadCount] = useState(0);
+  const [myConditionUnreadCount, setMyConditionUnreadCount] = useState(0);
+  const [wellnessUnreadCount, setWellnessUnreadCount] = useState(0);
+  const [noShowUnreadCount, setNoShowUnreadCount] = useState(0);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -201,6 +204,30 @@ function DashboardContent() {
       const qJoinReq = query(collection(db, `teams/${teamId}/join_requests`), where('status', '==', 'pending'));
       unsubJoinRequests = onSnapshot(qJoinReq, (snap) => {
         setPendingRequests(snap.size);
+      });
+    }
+
+    // MyCondition Unread (오늘 내 컨디션 미제출 시 1)
+    let unsubMyCondition: () => void;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const qMyCondition = query(collection(db, `teams/${teamId}/conditions`), where('userId', '==', session.user.id), where('date', '==', todayStr));
+    unsubMyCondition = onSnapshot(qMyCondition, (snap) => {
+      setMyConditionUnreadCount(snap.empty ? 1 : 0);
+    });
+
+    // Wellness Unread (오늘 팀 펄스 미제출 시 1)
+    let unsubWellness: () => void;
+    const qWellness = query(collection(db, `teams/${teamId}/wellness_submissions`), where('userId', '==', session.user.id), where('date', '==', todayStr));
+    unsubWellness = onSnapshot(qWellness, (snap) => {
+      setWellnessUnreadCount(snap.empty ? 1 : 0);
+    });
+
+    // NoShow Unread (예약금 결제 완료 건수) - 관리자 이상만 체크
+    let unsubNoShow: () => void;
+    if (isManagerOrHigher(normalizeRole(userRole))) {
+      const qNoShow = query(collection(db, `teams/${teamId}/noshow_bookings`), where('status', '==', 'paid'));
+      unsubNoShow = onSnapshot(qNoShow, (snap) => {
+        setNoShowUnreadCount(snap.size);
       });
     }
     
@@ -369,12 +396,18 @@ function DashboardContent() {
         if (unsubKanbanMeta) unsubKanbanMeta();
         if (unsubKanbanTasks) unsubKanbanTasks();
         if (unsubJoinRequests) unsubJoinRequests();
+        if (unsubMyCondition) unsubMyCondition();
+        if (unsubWellness) unsubWellness();
+        if (unsubNoShow) unsubNoShow();
       };
     });
     
     return () => {
       unsubMeta();
       if (unsubJoinRequests) unsubJoinRequests();
+      if (unsubMyCondition) unsubMyCondition();
+      if (unsubWellness) unsubWellness();
+      if (unsubNoShow) unsubNoShow();
     };
   }, [teamId, session?.user?.id, userRole]);
 
@@ -383,6 +416,7 @@ function DashboardContent() {
     if (!teamId || !session?.user?.id || userRole === 'guest' || userRole === 'leaving') return;
     const saveUnreadCount = async () => {
       const totalUnread = 
+        (isManagerOrHigher(normalizeRole(userRole)) ? pendingRequests : 0) +
         (enabledModules.includes('AnnouncementBlock') ? announcementsUnreadCount : 0) +
         (enabledModules.includes('CommunityBlock') ? communityUnreadCount : 0) +
         (enabledModules.includes('ScheduleBlock') ? scheduleUnreadCount : 0) +
@@ -391,12 +425,15 @@ function DashboardContent() {
         (enabledModules.includes('ClassAttendanceBlock') ? attendanceUnreadCount : 0) +
         (enabledModules.includes('BracketPositionBlock') ? lineupUnreadCount : 0) +
         (enabledModules.includes('KanbanTaskBlock') ? kanbanUnreadCount : 0) +
+        (enabledModules.includes('SessionDifficultyBlock') ? myConditionUnreadCount : 0) +
+        (enabledModules.includes('WellnessBlock') ? wellnessUnreadCount : 0) +
+        (enabledModules.includes('NoShowZeroBlock') ? noShowUnreadCount : 0) +
         chatUnreadCount;
       
       try {
-        await updateDoc(doc(db, `users/${session.user.id}/team_metadata`, teamId), {
+        await setDoc(doc(db, `users/${session.user.id}/team_metadata`, teamId), {
           lastUnreadCount: totalUnread
-        });
+        }, { merge: true });
       } catch (e) {
         console.debug("Failed to update lastUnreadCount for badge", e);
       }
@@ -406,7 +443,8 @@ function DashboardContent() {
     teamId, session?.user?.id, userRole, enabledModules,
     announcementsUnreadCount, communityUnreadCount, scheduleUnreadCount,
     playersUnreadCount, expenseUnreadCount, attendanceUnreadCount,
-    lineupUnreadCount, kanbanUnreadCount, chatUnreadCount
+    lineupUnreadCount, kanbanUnreadCount, chatUnreadCount,
+    pendingRequests, myConditionUnreadCount, wellnessUnreadCount, noShowUnreadCount
   ]);
 
   if (loading || status === 'loading') {
@@ -501,6 +539,7 @@ function DashboardContent() {
             클럽 대시보드
             {(() => {
               const totalUnread = 
+                (isManagerOrHigher(normalizeRole(userRole)) ? pendingRequests : 0) +
                 (enabledModules.includes('AnnouncementBlock') ? announcementsUnreadCount : 0) +
                 (enabledModules.includes('CommunityBlock') ? communityUnreadCount : 0) +
                 (enabledModules.includes('ScheduleBlock') ? scheduleUnreadCount : 0) +
@@ -508,7 +547,10 @@ function DashboardContent() {
                 (enabledModules.includes('ExpenseSettlementBlock') ? expenseUnreadCount : 0) +
                 (enabledModules.includes('ClassAttendanceBlock') ? attendanceUnreadCount : 0) +
                 (enabledModules.includes('BracketPositionBlock') ? lineupUnreadCount : 0) +
-                (enabledModules.includes('KanbanTaskBlock') ? kanbanUnreadCount : 0);
+                (enabledModules.includes('KanbanTaskBlock') ? kanbanUnreadCount : 0) +
+                (enabledModules.includes('SessionDifficultyBlock') ? myConditionUnreadCount : 0) +
+                (enabledModules.includes('WellnessBlock') ? wellnessUnreadCount : 0) +
+                (enabledModules.includes('NoShowZeroBlock') ? noShowUnreadCount : 0);
               return totalUnread > 0 && view !== 'dashboard' ? (
                 <span className="absolute -top-1 -right-2 bg-[#E05A47] text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-black animate-bounce shadow-sm">
                   {totalUnread > 99 ? '99+' : totalUnread}
@@ -595,7 +637,10 @@ function DashboardContent() {
                           moduleId === 'ExpenseSettlementBlock' ? expenseUnreadCount : 
                           moduleId === 'ClassAttendanceBlock' ? attendanceUnreadCount : 
                           moduleId === 'BracketPositionBlock' ? lineupUnreadCount : 
-                          moduleId === 'KanbanTaskBlock' ? kanbanUnreadCount : 0
+                          moduleId === 'KanbanTaskBlock' ? kanbanUnreadCount :
+                          moduleId === 'SessionDifficultyBlock' ? myConditionUnreadCount :
+                          moduleId === 'WellnessBlock' ? wellnessUnreadCount :
+                          moduleId === 'NoShowZeroBlock' ? noShowUnreadCount : 0
                         }
                       />
                     </SortableItem>

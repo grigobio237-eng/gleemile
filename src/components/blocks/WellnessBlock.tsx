@@ -15,9 +15,10 @@ interface WellnessBlockProps {
   role: string;
   hasCheckedIn?: boolean;
   teamId?: string;
+  unreadCount?: number;
 }
 
-export function WellnessBlock({ role, teamId }: WellnessBlockProps) {
+export function WellnessBlock({ role, teamId, unreadCount }: WellnessBlockProps) {
   const { data: session } = useSession();
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
 
@@ -42,8 +43,9 @@ export function WellnessBlock({ role, teamId }: WellnessBlockProps) {
   // 멤버용 렌더링
   return (
     <Link href={teamId ? `/mile/${teamId}/wellness` : '/'} className="block w-full">
-      <Card className={`rounded-2xl border-none shadow-lg hover:shadow-xl transition-all cursor-pointer ${!hasCheckedIn ? 'ring-2 ring-green-400 ring-offset-2' : ''}`}>
-        <CardContent className="p-4">
+      <Card className={`rounded-2xl border-none shadow-lg hover:shadow-xl transition-all cursor-pointer h-full bg-white relative ${!hasCheckedIn ? 'ring-2 ring-green-400 ring-offset-2' : ''}`}>
+        <NotificationBadge count={unreadCount} />
+        <CardContent className="p-4 flex flex-col h-full relative">
           <div className="flex items-center gap-4">
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${!hasCheckedIn ? 'bg-green-500' : 'bg-green-600/80'}`}>
               <Heart className="w-6 h-6 text-white" />

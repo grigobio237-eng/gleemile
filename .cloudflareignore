@@ -1,0 +1,12 @@
+.git/
+functions/
+scripts/
+scratch/
+clean*.js
+extractor.js
+convert.js
+create_test_users.ts
+AGENTS.md
+CLAUDE.md
+.agents/
+.next/cache
