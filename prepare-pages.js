@@ -154,7 +154,15 @@ export default {
   const routes = {
     version: 1,
     include: ["/*"],
-    exclude: ["/_next/static/*", "/favicon.ico"]
+    exclude: [
+      "/_next/static/*", 
+      "/favicon.ico",
+      "/images/*",
+      "/sw.js",
+      "/firebase-messaging-sw.js",
+      "/manifest.json",
+      "/*.svg"
+    ]
   };
   fs.writeFileSync(
     path.join(assetsDir, '_routes.json'),
