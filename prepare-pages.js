@@ -59,7 +59,7 @@ esbuild.build({
     'util', 'assert', 'os', 'querystring', 'https', 'http', 'zlib', 'events',
     'buffer', 'net', 'tls', 'perf_hooks', 'string_decoder', 'punycode', 'dns',
     'diagnostics_channel', 'inspector', 'readline', 'tty', 'dgram', 'v8',
-    'worker_threads', 'cluster', 'module'
+    'worker_threads', 'cluster', 'module', 'node:stream/web'
   ],
   plugins: [mockPlugin],
   banner: {
@@ -81,31 +81,73 @@ import * as __node_zlib from 'node:zlib';
 import * as __node_events from 'node:events';
 import * as __node_buffer from 'node:buffer';
 import * as __node_async_hooks from 'node:async_hooks';
+import * as __node_stream_web from 'node:stream/web';
 
 const _nodeBuiltins = {
   crypto: __node_crypto, fs: __node_fs, path: __node_path, url: __node_url, vm: __node_vm, child_process: __node_child_process, stream: __node_stream, util: __node_util, assert: __node_assert, os: __node_os, querystring: __node_querystring, https: __node_https, http: __node_http, zlib: __node_zlib, events: __node_events, buffer: __node_buffer, async_hooks: __node_async_hooks,
-  'node:crypto': __node_crypto, 'node:fs': __node_fs, 'node:path': __node_path, 'node:url': __node_url, 'node:vm': __node_vm, 'node:child_process': __node_child_process, 'node:stream': __node_stream, 'node:util': __node_util, 'node:assert': __node_assert, 'node:os': __node_os, 'node:querystring': __node_querystring, 'node:https': __node_https, 'node:http': __node_http, 'node:zlib': __node_zlib, 'node:events': __node_events, 'node:buffer': __node_buffer, 'node:async_hooks': __node_async_hooks
+  'node:crypto': __node_crypto, 'node:fs': __node_fs, 'node:path': __node_path, 'node:url': __node_url, 'node:vm': __node_vm, 'node:child_process': __node_child_process, 'node:stream': __node_stream, 'node:util': __node_util, 'node:assert': __node_assert, 'node:os': __node_os, 'node:querystring': __node_querystring, 'node:https': __node_https, 'node:http': __node_http, 'node:zlib': __node_zlib, 'node:events': __node_events, 'node:buffer': __node_buffer, 'node:async_hooks': __node_async_hooks, 'node:stream/web': __node_stream_web
 };
 
 globalThis.require = function(id) {
   if (_nodeBuiltins[id]) return _nodeBuiltins[id];
-  throw new Error('Not supported require: ' + id);
+  const e = new Error('Not supported require: ' + id);
+  globalThis.LAST_ERROR = e.stack;
+  throw e;
+};
+
+const _origError = console.error;
+console.error = function(...args) {
+  _origError(...args);
+  const str = args.map(a => typeof a === 'object' && a ? (a.stack || JSON.stringify(a)) : String(a)).join(' ');
+  globalThis.LAST_ERROR = str;
 };
 `
   },
   define: {
-    'process.env.NODE_ENV': '"production"'
+    'process.env.NODE_ENV': '"development"'
   },
   metafile: true
 }).then(result => {
   fs.writeFileSync('bundle-meta.json', JSON.stringify(result.metafile));
   
-  // Patch the esbuild __require stub to use our globalThis.require instead of throwing
   let indexJsContent = fs.readFileSync(path.join(workerDir, 'index.js'), 'utf8');
   indexJsContent = indexJsContent.replace(
     /throw Error\(['"`]Dynamic require of ['"`] \+ x \+ ['"`] is not supported['"`]\);?/g,
     'return globalThis.require(x);'
   );
+  
+  // Replace "Internal Server Error" strings with our LAST_ERROR
+  indexJsContent = indexJsContent.replace(
+    /U\.body\("Internal Server Error"\)/g,
+    'U.body(globalThis.LAST_ERROR || "Internal Server Error")'
+  );
+  indexJsContent = indexJsContent.replace(
+    /fromStatic\("Internal Server Error"/g,
+    'fromStatic(globalThis.LAST_ERROR || "Internal Server Error"'
+  );
+  
+  // Wrap the default export to catch unhandled errors
+  indexJsContent = indexJsContent.replace(
+    /export\s*\{([^}]*)\b(\w+)\s+as\s+default\b([^}]*)\};/,
+    (match, p1, p2, p3) => {
+      let rest = p1 + p3;
+      rest = rest.replace(/,\s*,/g, ',').replace(/^,|,$/g, '').trim();
+      let exportPrefix = rest.length > 0 ? `export {${rest}};\n` : '';
+      return exportPrefix + `
+const origDefault = ${p2};
+export default {
+  ...origDefault,
+  async fetch(req, env, ctx) {
+    if (!env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL) {
+      env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL = "https://placeholder.com";
+    }
+    return origDefault.fetch(req, env, ctx);
+  }
+};
+`;
+    }
+  );
+  
   fs.writeFileSync(path.join(workerDir, 'index.js'), indexJsContent);
   
   console.log("Creating _routes.json...");
