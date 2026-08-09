@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCacheManager } from './cache';
-import { getDatabaseOptimizer } from './dbOptimizer';
 
 export interface PerformanceMetric {
   id: string;
@@ -363,11 +362,9 @@ export class PerformanceMonitor {
     const totalMemory = require('os').totalmem();
     
     const cacheManager = getCacheManager();
-    const dbOptimizer = getDatabaseOptimizer();
     
-    const [cacheStats, dbStats] = await Promise.all([
-      cacheManager.getStats(),
-      dbOptimizer.getPerformanceMetrics()
+    const [cacheStats] = await Promise.all([
+      cacheManager.getStats()
     ]);
 
     return {
@@ -378,7 +375,7 @@ export class PerformanceMonitor {
       },
       uptime: process.uptime(),
       cache: cacheStats,
-      database: dbStats
+      database: null
     };
   }
 

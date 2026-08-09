@@ -1,4 +1,3 @@
-import { AccessToken } from 'livekit-server-sdk';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { NextResponse } from 'next/server';
@@ -13,7 +12,6 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Await params since it's a Promise in Next.js 15
     const resolvedParams = await params;
     const teamId = resolvedParams.teamId;
 
@@ -21,40 +19,32 @@ export async function GET(
       return NextResponse.json({ error: 'Team ID is required' }, { status: 400 });
     }
 
-    const apiKey = process.env.LIVEKIT_API_KEY;
-    const apiSecret = process.env.LIVEKIT_API_SECRET;
-    const wsUrl = process.env.LIVEKIT_URL;
-
-    if (!apiKey || !apiSecret || !wsUrl) {
-      return NextResponse.json(
-        { error: 'LiveKit server configuration missing' },
-        { status: 500 }
-      );
-    }
-
-    // Room name is the teamId to ensure each club has their own voice channel
-    const roomName = `voice-room-${teamId}`;
     const participantName = session.user.name || session.user.email?.split('@')[0] || 'Unknown User';
     
-    // Create an access token for this user
-    const at = new AccessToken(apiKey, apiSecret, {
-      identity: session.user.id,
-      name: participantName,
-    });
-    
-    // Set permissions: they can join this specific room, and publish/subscribe to audio
-    at.addGrant({
-      roomJoin: true,
-      room: roomName,
-      canPublish: true,
-      canSubscribe: true,
-      canPublishData: true,
-    });
-    
+    // Call Firebase Cloud Function
+    const functionsUrl = process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL;
+    if (!functionsUrl) {
+      console.error('Missing NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL');
+      return NextResponse.json({ error: 'Server configuration missing' }, { status: 500 });
+    }
 
-    const token = await at.toJwt();
-    
-    return NextResponse.json({ token, wsUrl, roomName });
+    const response = await fetch(`${functionsUrl}/generateVoiceToken`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        teamId,
+        userId: session.user.id,
+        userName: participantName
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to fetch token from Cloud Functions');
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error: any) {
     console.error('Error generating LiveKit token:', error);
     return NextResponse.json(

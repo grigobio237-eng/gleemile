@@ -2,10 +2,23 @@ import NextAuth, { AuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import KakaoProvider from 'next-auth/providers/kakao';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
-import { adminDb, adminAuth } from '@/lib/firebase/admin';
-import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+
+// Cloud Functions helper for DB operations
+async function proxyAuthRequest(action: string, payload: any) {
+  const url = process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL;
+  if (!url) throw new Error('Missing NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL');
+  
+  const res = await fetch(`${url}/authProxy`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, payload })
+  });
+  
+  if (!res.ok) {
+    throw new Error(`Auth Proxy Error: ${res.statusText}`);
+  }
+  return await res.json();
+}
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -37,19 +50,16 @@ export const authOptions: AuthOptions = {
         token: { label: 'Token', type: 'text' }
       },
       async authorize(credentials) {
-        // [이중 인증 브릿지] 매직 링크에서 넘어온 Firebase Token 처리
         if (credentials?.token) {
           try {
-            const decodedToken = await adminAuth.verifyIdToken(credentials.token);
+            const { decodedToken } = await proxyAuthRequest('verifyIdToken', { token: credentials.token });
             const email = decodedToken.email;
             if (!email) return null;
 
-            const usersRef = adminDb.collection('users');
-            const snapshot = await usersRef.where('email', '==', email).limit(1).get();
+            const { user } = await proxyAuthRequest('getUserByEmail', { email });
 
-            let userDoc: any;
-            if (snapshot.empty) {
-              const newUserRef = usersRef.doc();
+            let userDoc = user;
+            if (!userDoc) {
               const newUserData = {
                 email,
                 name: decodedToken.name || email.split('@')[0],
@@ -57,14 +67,9 @@ export const authOptions: AuthOptions = {
                 provider: 'magic-link',
                 providerId: decodedToken.uid,
                 globalRole: 'member',
-                createdAt: new Date(),
-                updatedAt: new Date()
               };
-              await newUserRef.set(newUserData);
-              userDoc = { id: newUserRef.id, ...newUserData };
-            } else {
-              const snapDoc = snapshot.docs[0];
-              userDoc = { id: snapDoc.id, ...snapDoc.data() };
+              const { id } = await proxyAuthRequest('createUser', { userData: newUserData });
+              userDoc = { id, ...newUserData };
             }
 
             return {
@@ -81,32 +86,23 @@ export const authOptions: AuthOptions = {
           }
         }
 
-        // 기존 이메일/비밀번호 로그인 유지
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
 
         try {
-          const usersRef = adminDb.collection('users');
-          const snapshot = await usersRef.where('email', '==', credentials.email).limit(1).get();
+          const { user } = await proxyAuthRequest('getUserByEmail', { email: credentials.email });
 
-          if (snapshot.empty) {
+          if (!user || !user.passwordHash) {
             return null;
           }
 
-          const userDoc = snapshot.docs[0];
-          const user = userDoc.data();
+          const { isValid } = await proxyAuthRequest('verifyPassword', {
+            password: credentials.password,
+            hashedPassword: user.passwordHash
+          });
 
-          if (!user.passwordHash) {
-            return null;
-          }
-
-          const isPasswordValid = await bcrypt.compare(
-            credentials.password,
-            user.passwordHash
-          );
-
-          if (!isPasswordValid) {
+          if (!isValid) {
             return null;
           }
 
@@ -115,7 +111,7 @@ export const authOptions: AuthOptions = {
           }
 
           return {
-            id: userDoc.id,
+            id: user.id,
             email: user.email,
             name: user.name,
             image: user.avatar || '',
@@ -137,40 +133,36 @@ export const authOptions: AuthOptions = {
           let name = user.name || (profile as any)?.properties?.nickname || (profile as any)?.kakao_account?.profile?.nickname || 'New User';
           let avatar = user.image || (profile as any)?.properties?.profile_image || (profile as any)?.kakao_account?.profile?.profile_image_url || '';
 
-          const usersRef = adminDb.collection('users');
-          const snapshot = await usersRef.where('email', '==', email).limit(1).get();
+          const { user: existingUser } = await proxyAuthRequest('getUserByEmail', { email });
 
-          if (snapshot.empty) {
-            // Create new user
-            const newUserRef = usersRef.doc();
-            await newUserRef.set({
+          if (!existingUser) {
+            const newUserData = {
               email,
               name,
               avatar,
               provider: account.provider,
               providerId: account.providerAccountId,
               globalRole: 'member',
-              createdAt: new Date(),
-              updatedAt: new Date()
-            });
-            user.id = newUserRef.id;
+            };
+            const { id } = await proxyAuthRequest('createUser', { userData: newUserData });
+            user.id = id;
           } else {
-            // Update existing user
-            const existingUserRef = snapshot.docs[0].ref;
-            await existingUserRef.update({
-              name,
-              avatar,
-              provider: account.provider,
-              providerId: account.providerAccountId,
-              updatedAt: new Date()
+            await proxyAuthRequest('updateUser', {
+              id: existingUser.id,
+              userData: {
+                name,
+                avatar,
+                provider: account.provider,
+                providerId: account.providerAccountId,
+              }
             });
-            user.id = snapshot.docs[0].id;
+            user.id = existingUser.id;
           }
 
           return true;
         } catch (error) {
           console.error('[SignIn] Critical Error:', error);
-          return true; // fail open for debugging
+          return true;
         }
       }
       return true;
@@ -198,29 +190,25 @@ export const authOptions: AuthOptions = {
 
       if (token.id) {
         try {
-          const userDoc = await adminDb.collection('users').doc(token.id as string).get();
-          if (userDoc.exists) {
-            const dbUser = userDoc.data()!;
+          const { user: dbUser } = await proxyAuthRequest('getUserById', { id: token.id });
+          if (dbUser) {
             token.globalRole = dbUser.globalRole;
             token.name = dbUser.name;
             token.image = dbUser.avatar;
           }
 
-          // 🔥 session.update() 트리거 대응 (새로운 팀 가입 시)
           if (trigger === 'update' && session?.activeTeamId) {
             token.activeTeamId = session.activeTeamId;
           }
 
-          // 🔥 Firestore 실시간 권한 룩업 (Session Sync)
           if (token.activeTeamId && token.id) {
             try {
-              const memberRef = adminDb.collection('team_members').doc(`${token.activeTeamId}_${token.id}`);
-              const memberSnap = await memberRef.get();
-              if (memberSnap.exists) {
-                const memberData = memberSnap.data();
-                if (memberData?.status === 'active') {
-                  token.mileRole = memberData.role;
-                }
+              const { data: memberData } = await proxyAuthRequest('getTeamMemberRole', {
+                teamId: token.activeTeamId,
+                userId: token.id
+              });
+              if (memberData?.status === 'active') {
+                token.mileRole = memberData.role;
               }
             } catch (fsErr) {
               console.error('[Auth JWT] Firestore team_members lookup failed:', fsErr);
@@ -242,7 +230,6 @@ export const authOptions: AuthOptions = {
         (session.user as any).provider = token.provider as string;
         (session.user as any).providerId = token.providerId as string;
         (session.user as any).globalRole = token.globalRole as string;
-        // 모임 플랫폼 연동
         (session.user as any).mileRole = token.mileRole || null;
         (session.user as any).activeTeamId = token.activeTeamId || null;
       }
@@ -254,47 +241,12 @@ export const authOptions: AuthOptions = {
   },
   session: {
     strategy: 'jwt' as const,
-    maxAge: 30 * 24 * 60 * 60, // 30일
+    maxAge: 30 * 24 * 60 * 60,
   },
   jwt: {
-    maxAge: 30 * 24 * 60 * 60, // 30일
+    maxAge: 30 * 24 * 60 * 60,
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
-
-// 비밀번호 검증 함수
-export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
-  return await bcrypt.compare(password, hashedPassword);
-}
-
-// 통합 인증 검증 함수 (일반 사용자 토큰 확인)
-export async function verifyAuth(request: NextRequest) {
-  try {
-    const authToken = request.cookies.get('auth-token')?.value;
-    if (authToken) {
-      try {
-        const decoded = jwt.verify(authToken, process.env.JWT_SECRET!) as any;
-        if (decoded && decoded.id) {
-          const userDoc = await adminDb.collection('users').doc(decoded.id).get();
-          if (userDoc.exists) {
-            const user = userDoc.data()!;
-            return {
-              id: userDoc.id,
-              email: user.email,
-              name: user.name,
-              globalRole: user.globalRole || 'member',
-            };
-          }
-        }
-      } catch (error) {
-        // 토큰이 유효하지 않으면 null 반환
-      }
-    }
-    return null;
-  } catch (error) {
-    console.error('인증 검증 오류:', error);
-    return null;
-  }
-}
 
 export default NextAuth(authOptions);

@@ -1,5 +1,7 @@
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
+import * as bcrypt from 'bcryptjs';
+import { AccessToken } from 'livekit-server-sdk';
 
 // db 인스턴스를 지연 로딩하기 위한 헬퍼
 function getDb() {
@@ -133,3 +135,131 @@ export const onAnnouncementCreated = functions.region('asia-northeast3').firesto
     
     return null;
   });
+
+// ----------------------------------------------------------------------
+// HTTP Endpoints (Next.js SSR to Cloud Functions Proxy)
+// ----------------------------------------------------------------------
+
+export const authProxy = functions.region('asia-northeast3').https.onRequest((async (req: any, res: any) => {
+  try {
+    const { action, payload } = req.body;
+    const db = getDb();
+    
+    if (action === 'verifyIdToken') {
+      const decodedToken = await admin.auth().verifyIdToken(payload.token);
+      return res.json({ decodedToken });
+    }
+    
+    if (action === 'getUserByEmail') {
+      const snapshot = await db.collection('users').where('email', '==', payload.email).limit(1).get();
+      if (snapshot.empty) return res.json({ user: null });
+      return res.json({ user: { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } });
+    }
+    
+    if (action === 'getUserById') {
+      const doc = await db.collection('users').doc(payload.id).get();
+      if (!doc.exists) return res.json({ user: null });
+      return res.json({ user: { id: doc.id, ...doc.data() } });
+    }
+    
+    if (action === 'createUser') {
+      const newUserRef = db.collection('users').doc();
+      const userData = {
+        ...payload.userData,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+      await newUserRef.set(userData);
+      return res.json({ id: newUserRef.id });
+    }
+    
+    if (action === 'updateUser') {
+      const userData = {
+        ...payload.userData,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+      await db.collection('users').doc(payload.id).update(userData);
+      return res.json({ success: true });
+    }
+    
+    if (action === 'verifyPassword') {
+      const isValid = await bcrypt.compare(payload.password, payload.hashedPassword);
+      return res.json({ isValid });
+    }
+    
+    if (action === 'getTeamMemberRole') {
+      const memberRef = db.collection('team_members').doc(`${payload.teamId}_${payload.userId}`);
+      const memberSnap = await memberRef.get();
+      if (memberSnap.exists) {
+        return res.json({ data: memberSnap.data() });
+      }
+      return res.json({ data: null });
+    }
+    
+    return res.status(400).json({ error: 'Unknown action' });
+  } catch (error: any) {
+    console.error('authProxy error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}) as any);
+
+export const signupUser = functions.region('asia-northeast3').https.onRequest((async (req: any, res: any) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) return res.status(400).json({ error: '이름, 이메일, 비밀번호는 필수 입력값입니다.' });
+    
+    const db = getDb();
+    const snapshot = await db.collection('users').where('email', '==', email).limit(1).get();
+    if (!snapshot.empty) return res.status(400).json({ error: '이미 사용 중인 이메일입니다.' });
+    
+    const passwordHash = await bcrypt.hash(password, 12);
+    const newUserRef = db.collection('users').doc();
+    const newUser = {
+      email, name, passwordHash,
+      provider: 'local', globalRole: 'member',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+    await newUserRef.set(newUser);
+    
+    return res.json({
+      message: '회원가입이 완료되었습니다.',
+      user: { id: newUserRef.id, name, email }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+}) as any);
+
+export const generateVoiceToken = functions.region('asia-northeast3').https.onRequest((async (req: any, res: any) => {
+  try {
+    const { teamId, userId, userName } = req.body;
+    if (!teamId || !userId || !userName) return res.status(400).json({ error: 'Missing parameters' });
+    
+    // Cloud Functions config or process.env
+    const apiKey = process.env.LIVEKIT_API_KEY as string;
+    const apiSecret = process.env.LIVEKIT_API_SECRET as string;
+    const wsUrl = process.env.LIVEKIT_URL as string;
+    
+    if (!apiKey || !apiSecret || !wsUrl) {
+      return res.status(500).json({ error: 'LiveKit server configuration missing' });
+    }
+    
+    const roomName = `voice-room-${teamId}`;
+    const at = new AccessToken(apiKey, apiSecret, {
+      identity: userId,
+      name: userName,
+    });
+    
+    at.addGrant({
+      roomJoin: true, room: roomName,
+      canPublish: true, canSubscribe: true, canPublishData: true,
+    });
+    
+    const token = await at.toJwt();
+    return res.json({ token, wsUrl, roomName });
+  } catch (error: any) {
+    console.error('generateVoiceToken error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}) as any);
