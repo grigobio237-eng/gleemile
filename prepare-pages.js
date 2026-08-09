@@ -13,8 +13,9 @@ fs.mkdirSync(workerDir, { recursive: true });
 
 console.log("Bundling worker using esbuild...");
 // Bundle worker.js into a single index.js file
+const metafile = path.join(__dirname, 'bundle-meta.json');
 execSync(
-  `npx esbuild .open-next/worker.js --bundle --outfile=${path.join(workerDir, 'index.js')} --platform=node --target=es2022 --format=esm --external:node:* --external:cloudflare:*`,
+  `npx esbuild .open-next/worker.js --bundle --minify --outfile=${path.join(workerDir, 'index.js')} --platform=node --target=es2022 --format=esm --external:node:* --external:cloudflare:* --external:nodemailer --external:cheerio --external:jspdf --external:html2canvas --external:@livekit/components-react --external:livekit-client --external:qrcode.react --external:recharts --metafile=${metafile}`,
   { stdio: 'inherit' }
 );
 
