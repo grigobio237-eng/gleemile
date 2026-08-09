@@ -13,7 +13,8 @@ import { db } from '@/lib/firebase';
 import { doc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { WellnessBlock, wellnessBlockConverter } from '@/types/wellness';
 import { WellnessWidgetFactory } from '@/components/wellness/WellnessWidgetFactory';
-import { WellnessHistoryChart } from '@/components/wellness/widgets/WellnessHistoryChart';
+import dynamic from 'next/dynamic';
+const WellnessHistoryChart = dynamic(() => import('@/components/wellness/widgets/WellnessHistoryChart').then(mod => mod.WellnessHistoryChart), { ssr: false });
 
 export default function MyConditionPage() {
   const { data: session } = useSession();

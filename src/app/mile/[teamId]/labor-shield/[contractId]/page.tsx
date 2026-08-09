@@ -79,7 +79,7 @@ export default function EmployeeSignaturePage() {
         if (pdfTemplateRef.current) {
           try {
             // 1) PDF Blob 생성
-            const { generateContractPdfBlob } = await import('@/components/labor-shield/contract-pdf-template');
+            const { generateContractPdfBlob } = await import('@/components/labor-shield/pdf-generator');
             const pdfBlob = await generateContractPdfBlob(pdfTemplateRef.current);
             
             // Blob -> Base64 변환

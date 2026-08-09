@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import dynamic from 'next/dynamic';
+const QRCodeSVG = dynamic(() => import('qrcode.react').then(mod => mod.QRCodeSVG), { ssr: false });
 import { Button } from '@/components/ui/button';
 import { Download, Share2, Sparkles, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';

@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import * as cheerio from 'cheerio';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,13 +65,21 @@ export async function GET(request: Request) {
     }
 
     const html = await response.text();
-    const $ = cheerio.load(html);
+    
+    const getMetaTag = (name: string) => {
+      const regex = new RegExp(`<meta(?:\\\\s+[^>]*)*(?:property|name)=["']${name}["'](?:\\\\s+[^>]*)*content=["']([^"']+)["']`, 'i');
+      const match = html.match(regex);
+      if (match) return match[1];
+      // Try reverse order (content first)
+      const regex2 = new RegExp(`<meta(?:\\\\s+[^>]*)*content=["']([^"']+)["'](?:\\\\s+[^>]*)*(?:property|name)=["']${name}["']`, 'i');
+      const match2 = html.match(regex2);
+      return match2 ? match2[1] : null;
+    };
 
-    const getMetaTag = (name: string) => 
-      $(`meta[property="${name}"]`).attr('content') || 
-      $(`meta[name="${name}"]`).attr('content');
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const htmlTitle = titleMatch ? titleMatch[1] : null;
 
-    const title = getMetaTag('og:title') || getMetaTag('twitter:title') || $('title').text() || targetUrl;
+    const title = getMetaTag('og:title') || getMetaTag('twitter:title') || htmlTitle || targetUrl;
     const description = getMetaTag('og:description') || getMetaTag('twitter:description') || getMetaTag('description') || null;
     let image = getMetaTag('og:image') || getMetaTag('twitter:image') || null;
 

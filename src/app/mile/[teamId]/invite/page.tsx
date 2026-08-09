@@ -9,7 +9,8 @@ import { db } from '@/lib/firebase';
 import { Loader2, ArrowLeft, Copy, CheckCircle2, UserPlus, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { QRCodeSVG } from 'qrcode.react';
+import dynamic from 'next/dynamic';
+const QRCodeSVG = dynamic(() => import('qrcode.react').then(mod => mod.QRCodeSVG), { ssr: false });
 
 export default function TeamInvitePage() {
   const { status } = useSession();

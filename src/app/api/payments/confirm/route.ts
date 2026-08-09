@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import type { NoShowBooking } from '@/types/merchant';
 
 export async function POST(req: Request) {
@@ -11,15 +9,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Missing required parameters' }, { status: 400 });
     }
 
-    // 1. Firebase에서 주문 정보 확인
-    const bookingRef = doc(db, `teams/${teamId}/noshow_bookings`, paymentId);
-    const bookingSnap = await getDoc(bookingRef);
-
-    if (!bookingSnap.exists()) {
+    // 1. Firebase에서 주문 정보 확인 (REST API 사용)
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    const docUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/teams/${teamId}/noshow_bookings/${paymentId}`;
+    
+    const docRes = await fetch(docUrl);
+    if (docRes.status === 404) {
       return NextResponse.json({ message: 'Booking not found' }, { status: 404 });
     }
-
-    const booking = bookingSnap.data() as NoShowBooking & { orderId: string };
+    if (!docRes.ok) {
+      return NextResponse.json({ message: 'Error fetching booking' }, { status: 500 });
+    }
+    
+    const docData = await docRes.json();
+    const fields = docData.fields || {};
+    
+    const booking = {
+      orderId: fields.orderId?.stringValue,
+      depositAmount: fields.depositAmount?.integerValue || fields.depositAmount?.doubleValue,
+      status: fields.status?.stringValue
+    };
 
     if (booking.orderId !== orderId) {
       return NextResponse.json({ message: 'Order ID mismatch' }, { status: 400 });
@@ -63,10 +72,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: data.message || 'Payment confirmation failed' }, { status: response.status });
     }
 
-    // 3. 결제 승인 완료 후 DB 업데이트
-    await updateDoc(bookingRef, {
-      status: 'paid',
-      paidAt: new Date(),
+    // 3. 결제 승인 완료 후 DB 업데이트 (REST API 사용)
+    const patchUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/teams/${teamId}/noshow_bookings/${paymentId}?updateMask.fieldPaths=status&updateMask.fieldPaths=paidAt`;
+    await fetch(patchUrl, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fields: {
+          status: { stringValue: 'paid' },
+          paidAt: { timestampValue: new Date().toISOString() }
+        }
+      })
     });
 
     // 향후 카카오 알림톡 전송(결제 완료 안내) 로직 추가 가능

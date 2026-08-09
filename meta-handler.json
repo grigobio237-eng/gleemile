@@ -1,10 +1,25 @@
 {
   "inputs": {
     ".open-next/server-functions/default/handler.mjs": {
-      "bytes": 13794957,
+      "bytes": 12850977,
       "imports": [
         {
           "path": "node:timers",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "node:stream",
           "kind": "import-statement",
           "external": true
         },
@@ -609,22 +624,12 @@
           "external": true
         },
         {
-          "path": "node:buffer",
-          "kind": "require-call",
-          "external": true
-        },
-        {
           "path": "querystring",
           "kind": "require-call",
           "external": true
         },
         {
           "path": "assert",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "stream",
           "kind": "require-call",
           "external": true
         },
@@ -640,21 +645,6 @@
         },
         {
           "path": "https",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:util",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:crypto",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "buffer",
           "kind": "require-call",
           "external": true
         },
@@ -684,11 +674,6 @@
           "external": true
         },
         {
-          "path": "stream",
-          "kind": "require-call",
-          "external": true
-        },
-        {
           "path": "util",
           "kind": "require-call",
           "external": true
@@ -700,11 +685,6 @@
         },
         {
           "path": "https",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "buffer",
           "kind": "require-call",
           "external": true
         },
@@ -1989,11 +1969,6 @@
           "external": true
         },
         {
-          "path": "stream",
-          "kind": "require-call",
-          "external": true
-        },
-        {
           "path": "util",
           "kind": "require-call",
           "external": true
@@ -2005,11 +1980,6 @@
         },
         {
           "path": "https",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "buffer",
           "kind": "require-call",
           "external": true
         },
@@ -2039,11 +2009,6 @@
           "external": true
         },
         {
-          "path": "stream",
-          "kind": "require-call",
-          "external": true
-        },
-        {
           "path": "util",
           "kind": "require-call",
           "external": true
@@ -2055,11 +2020,6 @@
         },
         {
           "path": "https",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "buffer",
           "kind": "require-call",
           "external": true
         },
@@ -2249,11 +2209,6 @@
           "external": true
         },
         {
-          "path": "stream",
-          "kind": "require-call",
-          "external": true
-        },
-        {
           "path": "util",
           "kind": "require-call",
           "external": true
@@ -2265,11 +2220,6 @@
         },
         {
           "path": "https",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "buffer",
           "kind": "require-call",
           "external": true
         },
@@ -3499,11 +3449,6 @@
           "external": true
         },
         {
-          "path": "stream",
-          "kind": "require-call",
-          "external": true
-        },
-        {
           "path": "util",
           "kind": "require-call",
           "external": true
@@ -3515,11 +3460,6 @@
         },
         {
           "path": "https",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "buffer",
           "kind": "require-call",
           "external": true
         },
@@ -3539,27 +3479,17 @@
           "external": true
         },
         {
-          "path": "node:perf_hooks",
+          "path": "buffer",
           "kind": "require-call",
           "external": true
         },
         {
-          "path": "node:buffer",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:async_hooks",
+          "path": "string_decoder",
           "kind": "require-call",
           "external": true
         },
         {
           "path": "stream",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:http2",
           "kind": "require-call",
           "external": true
         },
@@ -3574,72 +3504,7 @@
           "external": true
         },
         {
-          "path": "node:console",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:zlib",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:dns",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "string_decoder",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:tls",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:querystring",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:fs/promises",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:diagnostics_channel",
-          "kind": "require-call",
-          "external": true
-        },
-        {
           "path": "node:stream",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:util",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:url",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:util/types",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:worker_threads",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:path",
           "kind": "require-call",
           "external": true
         },
@@ -3649,7 +3514,7 @@
           "external": true
         },
         {
-          "path": "node:crypto",
+          "path": "node:querystring",
           "kind": "require-call",
           "external": true
         },
@@ -3659,7 +3524,62 @@
           "external": true
         },
         {
-          "path": "buffer",
+          "path": "node:diagnostics_channel",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:events",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:net",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:tls",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:buffer",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:buffer",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:crypto",
           "kind": "require-call",
           "external": true
         },
@@ -3669,11 +3589,501 @@
           "external": true
         },
         {
+          "path": "node:worker_threads",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:zlib",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:worker_threads",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:zlib",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:perf_hooks",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util/types",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util/types",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:crypto",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:http2",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:net",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:http",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:buffer",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:net",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:events",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:buffer",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:url",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:tls",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:async_hooks",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:async_hooks",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:async_hooks",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:async_hooks",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:async_hooks",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:http",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:console",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:crypto",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:fs/promises",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
           "path": "node:timers",
           "kind": "require-call",
           "external": true
         },
         {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:events",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:net",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:dns",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:events",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:zlib",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:diagnostics_channel",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:sqlite",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:events",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:crypto",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:zlib",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:events",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:http",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:buffer",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:buffer",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:crypto",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:crypto",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:zlib",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util/types",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
           "path": "dns",
           "kind": "require-call",
           "external": true
@@ -3830,11 +4240,6 @@
         },
         {
           "path": "events",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "crypto",
           "kind": "require-call",
           "external": true
         },
@@ -3845,11 +4250,6 @@
         },
         {
           "path": "assert",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "stream",
           "kind": "require-call",
           "external": true
         },
@@ -3865,11 +4265,6 @@
         },
         {
           "path": "https",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "buffer",
           "kind": "require-call",
           "external": true
         },
@@ -4988,10 +5383,25 @@
     }
   },
   "outputs": {
-    "dummy.js": {
+    "temp.js": {
       "imports": [
         {
           "path": "node:timers",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "node:stream",
           "kind": "import-statement",
           "external": true
         },
@@ -5596,22 +6006,12 @@
           "external": true
         },
         {
-          "path": "node:buffer",
-          "kind": "require-call",
-          "external": true
-        },
-        {
           "path": "querystring",
           "kind": "require-call",
           "external": true
         },
         {
           "path": "assert",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "stream",
           "kind": "require-call",
           "external": true
         },
@@ -5627,21 +6027,6 @@
         },
         {
           "path": "https",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:util",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:crypto",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "buffer",
           "kind": "require-call",
           "external": true
         },
@@ -5671,11 +6056,6 @@
           "external": true
         },
         {
-          "path": "stream",
-          "kind": "require-call",
-          "external": true
-        },
-        {
           "path": "util",
           "kind": "require-call",
           "external": true
@@ -5687,11 +6067,6 @@
         },
         {
           "path": "https",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "buffer",
           "kind": "require-call",
           "external": true
         },
@@ -6976,11 +7351,6 @@
           "external": true
         },
         {
-          "path": "stream",
-          "kind": "require-call",
-          "external": true
-        },
-        {
           "path": "util",
           "kind": "require-call",
           "external": true
@@ -6992,11 +7362,6 @@
         },
         {
           "path": "https",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "buffer",
           "kind": "require-call",
           "external": true
         },
@@ -7026,11 +7391,6 @@
           "external": true
         },
         {
-          "path": "stream",
-          "kind": "require-call",
-          "external": true
-        },
-        {
           "path": "util",
           "kind": "require-call",
           "external": true
@@ -7042,11 +7402,6 @@
         },
         {
           "path": "https",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "buffer",
           "kind": "require-call",
           "external": true
         },
@@ -7236,11 +7591,6 @@
           "external": true
         },
         {
-          "path": "stream",
-          "kind": "require-call",
-          "external": true
-        },
-        {
           "path": "util",
           "kind": "require-call",
           "external": true
@@ -7252,11 +7602,6 @@
         },
         {
           "path": "https",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "buffer",
           "kind": "require-call",
           "external": true
         },
@@ -8486,11 +8831,6 @@
           "external": true
         },
         {
-          "path": "stream",
-          "kind": "require-call",
-          "external": true
-        },
-        {
           "path": "util",
           "kind": "require-call",
           "external": true
@@ -8502,11 +8842,6 @@
         },
         {
           "path": "https",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "buffer",
           "kind": "require-call",
           "external": true
         },
@@ -8526,27 +8861,17 @@
           "external": true
         },
         {
-          "path": "node:perf_hooks",
+          "path": "buffer",
           "kind": "require-call",
           "external": true
         },
         {
-          "path": "node:buffer",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:async_hooks",
+          "path": "string_decoder",
           "kind": "require-call",
           "external": true
         },
         {
           "path": "stream",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:http2",
           "kind": "require-call",
           "external": true
         },
@@ -8561,72 +8886,7 @@
           "external": true
         },
         {
-          "path": "node:console",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:zlib",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:dns",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "string_decoder",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:tls",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:querystring",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:fs/promises",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:diagnostics_channel",
-          "kind": "require-call",
-          "external": true
-        },
-        {
           "path": "node:stream",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:util",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:url",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:util/types",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:worker_threads",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "node:path",
           "kind": "require-call",
           "external": true
         },
@@ -8636,7 +8896,7 @@
           "external": true
         },
         {
-          "path": "node:crypto",
+          "path": "node:querystring",
           "kind": "require-call",
           "external": true
         },
@@ -8646,7 +8906,62 @@
           "external": true
         },
         {
-          "path": "buffer",
+          "path": "node:diagnostics_channel",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:events",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:net",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:tls",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:buffer",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:buffer",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:crypto",
           "kind": "require-call",
           "external": true
         },
@@ -8656,11 +8971,501 @@
           "external": true
         },
         {
+          "path": "node:worker_threads",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:zlib",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:worker_threads",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:zlib",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:perf_hooks",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util/types",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util/types",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:crypto",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:http2",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:net",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:http",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:buffer",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:net",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:events",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:buffer",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:url",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:tls",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:async_hooks",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:async_hooks",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:async_hooks",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:async_hooks",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:async_hooks",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:http",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:console",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:crypto",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:fs/promises",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
           "path": "node:timers",
           "kind": "require-call",
           "external": true
         },
         {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:events",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:net",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:dns",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:events",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:zlib",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:diagnostics_channel",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:sqlite",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:events",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:crypto",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:zlib",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:events",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:http",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:buffer",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:buffer",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:crypto",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:crypto",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:zlib",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:assert",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:util/types",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:stream",
+          "kind": "require-call",
+          "external": true
+        },
+        {
           "path": "dns",
           "kind": "require-call",
           "external": true
@@ -8817,11 +9622,6 @@
         },
         {
           "path": "events",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "crypto",
           "kind": "require-call",
           "external": true
         },
@@ -8832,11 +9632,6 @@
         },
         {
           "path": "assert",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "stream",
           "kind": "require-call",
           "external": true
         },
@@ -8852,11 +9647,6 @@
         },
         {
           "path": "https",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": "buffer",
           "kind": "require-call",
           "external": true
         },
@@ -9972,10 +10762,10 @@
       "entryPoint": ".open-next/server-functions/default/handler.mjs",
       "inputs": {
         ".open-next/server-functions/default/handler.mjs": {
-          "bytesInOutput": 13127624
+          "bytesInOutput": 16393210
         }
       },
-      "bytes": 13127902
+      "bytes": 16393661
     }
   }
 }
