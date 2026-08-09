@@ -2,7 +2,6 @@
 
 import React, { useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import html2canvas from 'html2canvas';
 import { Button } from '@/components/ui/button';
 import { Download, Share2, Sparkles, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -37,6 +36,7 @@ export default function QRReferralCard({ userName, referralCode }: QRReferralCar
     
     setDownloading(true);
     try {
+      const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(cardRef.current, {
         scale: 3, // High quality
         backgroundColor: '#0B0D10',

@@ -1,8 +1,6 @@
 "use client";
 
 import React, { forwardRef } from 'react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import Image from 'next/image';
 
 interface ContractData {
@@ -126,6 +124,7 @@ ContractPdfTemplate.displayName = 'ContractPdfTemplate';
  * @returns PDF Blob
  */
 export async function generateContractPdfBlob(element: HTMLElement): Promise<Blob> {
+  const html2canvas = (await import('html2canvas')).default;
   // 해상도를 높여 선명하게 캡처 (scale: 2)
   const canvas = await html2canvas(element, { 
     scale: 2, 
@@ -136,6 +135,7 @@ export async function generateContractPdfBlob(element: HTMLElement): Promise<Blo
   
   const imgData = canvas.toDataURL('image/png');
   
+  const jsPDF = (await import('jspdf')).default;
   // A4 기준 mm (210 x 297)
   const pdf = new jsPDF('p', 'mm', 'a4');
   const pdfWidth = pdf.internal.pageSize.getWidth();
