@@ -9,7 +9,9 @@ import { Button } from '@/components/ui/button';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import dynamic from 'next/dynamic';
+
+const AcwrChart = dynamic(() => import('@/components/charts/AcwrChart'), { ssr: false });
 
 // Firebase 문서의 유저 정보(session)를 가져오기 위한 임시 훅
 // 실제 환경에서는 next-auth 등의 useSession을 사용하거나 props/context로 주입받아야 합니다.
@@ -220,19 +222,7 @@ export default function ACWRPage() {
             <div className="space-y-8">
               {/* Chart Area */}
               <div className="h-[200px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={history.map(h => ({ name: `${new Date(h.date).getMonth()+1}/${new Date(h.date).getDate()}`, load: h.load }))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} width={40} />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                      labelStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}
-                      itemStyle={{ fontSize: '14px', fontWeight: '900', color: '#4f46e5' }}
-                    />
-                    <Line type="monotone" dataKey="load" name="부하량" stroke="#4f46e5" strokeWidth={3} dot={{ r: 4, fill: '#4f46e5', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} animationDuration={1000} />
-                  </LineChart>
-                </ResponsiveContainer>
+                <AcwrChart history={history} />
               </div>
 
               {/* List Area */}

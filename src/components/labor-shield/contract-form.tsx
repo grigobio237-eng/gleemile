@@ -20,9 +20,12 @@ import {
   isAboveMinimumWage, 
   MINIMUM_WAGE 
 } from '@/lib/labor-calculator';
-import SignaturePadModal from '@/components/labor-shield/signature-pad-modal';
+import dynamic from 'next/dynamic';
 import { createLaborContract } from '@/lib/labor-service';
 import { getLatestMinimumWage } from '@/lib/wage-sync-service';
+
+const SignaturePadModal = dynamic(() => import('@/components/labor-shield/signature-pad-modal'), { ssr: false });
+
 
 // 동적 계약서 스키마 생성기 (최저시급 반영)
 const getContractSchema = (minWage: number) => z.object({

@@ -6,9 +6,12 @@ import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { FileSignature, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
-import SignaturePadModal from '@/components/labor-shield/signature-pad-modal';
-import { ContractPdfTemplate, generateContractPdfBlob } from '@/components/labor-shield/contract-pdf-template';
 import { getLaborContract, completeLaborContract } from '@/lib/labor-service';
+import dynamic from 'next/dynamic';
+
+const SignaturePadModal = dynamic(() => import('@/components/labor-shield/signature-pad-modal'), { ssr: false });
+const ContractPdfTemplate = dynamic(() => import('@/components/labor-shield/contract-pdf-template').then(mod => mod.ContractPdfTemplate), { ssr: false });
+
 
 export default function EmployeeSignaturePage() {
   const params = useParams();
@@ -76,6 +79,7 @@ export default function EmployeeSignaturePage() {
         if (pdfTemplateRef.current) {
           try {
             // 1) PDF Blob 생성
+            const { generateContractPdfBlob } = await import('@/components/labor-shield/contract-pdf-template');
             const pdfBlob = await generateContractPdfBlob(pdfTemplateRef.current);
             
             // Blob -> Base64 변환

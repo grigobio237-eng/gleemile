@@ -41,9 +41,11 @@ import { NoShowZeroBlock } from '@/components/blocks/NoShowZeroBlock';
 import { QuickQuoteBlock } from '@/components/blocks/QuickQuoteBlock';
 import { PayCollectorBlock } from '@/components/blocks/PayCollectorBlock';
 import { MarginGuardBlock } from '@/components/blocks/MarginGuardBlock';
-import VoiceChatBlock from '@/components/blocks/sports/VoiceChatBlock';
+import dynamic from 'next/dynamic';
 
-const BLOCK_REGISTRY: Record<string, React.FC<any>> = {
+const VoiceChatBlock = dynamic(() => import('@/components/blocks/sports/VoiceChatBlock'), { ssr: false });
+
+const BLOCK_REGISTRY: Record<string, React.ComponentType<any>> = {
   AnnouncementBlock, CommunityBlock, ScheduleBlock, ExpenseSettlementBlock, WellnessBlock,
   PhysicalACWRBlock, TacticalDrawingBlock, BracketPositionBlock, PlayersBlock, SessionDifficultyBlock,
   ClassAttendanceBlock,
