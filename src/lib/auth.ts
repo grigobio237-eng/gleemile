@@ -3,9 +3,17 @@ import GoogleProvider from 'next-auth/providers/google';
 import KakaoProvider from 'next-auth/providers/kakao';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
+// Dynamic env getter to prevent Webpack from statically inlining process.env at build time
+function getEnv(key: string): string {
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    return process.env[key] as string;
+  }
+  return '';
+}
+
 // Cloud Functions helper for DB operations
 async function proxyAuthRequest(action: string, payload: any) {
-  const url = process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL;
+  const url = getEnv('NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL');
   if (!url) throw new Error('Missing NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL');
   
   const res = await fetch(`${url}/authProxy`, {
@@ -23,8 +31,8 @@ async function proxyAuthRequest(action: string, payload: any) {
 export const getAuthOptions = (): AuthOptions => ({
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      clientId: getEnv('GOOGLE_CLIENT_ID'),
+      clientSecret: getEnv('GOOGLE_CLIENT_SECRET'),
       authorization: {
         params: {
           scope: 'openid email profile',
@@ -38,8 +46,8 @@ export const getAuthOptions = (): AuthOptions => ({
       },
     }),
     KakaoProvider({
-      clientId: process.env.KAKAO_CLIENT_ID || '',
-      clientSecret: process.env.KAKAO_CLIENT_SECRET || '',
+      clientId: getEnv('KAKAO_CLIENT_ID'),
+      clientSecret: getEnv('KAKAO_CLIENT_SECRET'),
       checks: ['none'],
     }),
     CredentialsProvider({
@@ -246,5 +254,5 @@ export const getAuthOptions = (): AuthOptions => ({
   jwt: {
     maxAge: 30 * 24 * 60 * 60,
   },
-  secret: process.env.NEXTAUTH_SECRET || '',
+  secret: getEnv('NEXTAUTH_SECRET'),
 });
