@@ -30,10 +30,14 @@ async function proxyAuthRequest(action: string, payload: any) {
 
 export const getAuthOptions = (): AuthOptions => ({
   providers: [
-    GoogleProvider({
-      clientId: getEnv('GOOGLE_CLIENT_ID'),
-      clientSecret: getEnv('GOOGLE_CLIENT_SECRET'),
+    {
+      ...GoogleProvider({
+        clientId: getEnv('GOOGLE_CLIENT_ID'),
+        clientSecret: getEnv('GOOGLE_CLIENT_SECRET'),
+      }),
+      wellKnown: undefined, // Bypass Cloudflare openid-client discovery fetch issue
       authorization: {
+        url: 'https://accounts.google.com/o/oauth2/v2/auth',
         params: {
           scope: 'openid email profile',
           prompt: 'select_account',
@@ -41,10 +45,10 @@ export const getAuthOptions = (): AuthOptions => ({
           response_type: 'code',
         },
       },
-      httpOptions: {
-        timeout: 10000,
-      },
-    }),
+      token: 'https://oauth2.googleapis.com/token',
+      userinfo: 'https://openidconnect.googleapis.com/v1/userinfo',
+      jwks_endpoint: 'https://www.googleapis.com/oauth2/v3/certs',
+    },
     KakaoProvider({
       clientId: getEnv('KAKAO_CLIENT_ID'),
       clientSecret: getEnv('KAKAO_CLIENT_SECRET'),
