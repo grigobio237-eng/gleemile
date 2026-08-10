@@ -67,9 +67,9 @@ function SigninContent() {
       console.log(`[handleSocialLogin] next-auth signIn 호출 시작...`);
       const result = await signIn(provider, { callbackUrl: callbackUrl });
       console.log(`[handleSocialLogin] next-auth signIn 결과:`, result);
-    } catch (error) {
+    } catch (error: any) {
       console.error(`[handleSocialLogin] 💥 치명적 에러 발생:`, error);
-      alert(`로그인 버튼 동작 중 에러가 발생했습니다: ${error.message || error}`);
+      alert(`로그인 버튼 동작 중 에러가 발생했습니다: ${error?.message || error}`);
     }
   };
 
