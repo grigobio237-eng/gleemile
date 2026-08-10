@@ -53,11 +53,24 @@ function SigninContent() {
   }, []);
 
   const handleSocialLogin = async (provider: string) => {
-    if (provider === 'google') {
-      const handled = await handleWebViewOAuth(provider, callbackUrl);
-      if (handled) return;
+    console.log(`[handleSocialLogin] 시작됨! 선택된 제공자: ${provider}`);
+    console.log(`[handleSocialLogin] 현재 callbackUrl: ${callbackUrl}`);
+    
+    try {
+      if (provider === 'google') {
+        console.log(`[handleSocialLogin] WebView 검사 시작`);
+        const handled = await handleWebViewOAuth(provider, callbackUrl);
+        console.log(`[handleSocialLogin] WebView 검사 결과: ${handled}`);
+        if (handled) return;
+      }
+      
+      console.log(`[handleSocialLogin] next-auth signIn 호출 시작...`);
+      const result = await signIn(provider, { callbackUrl: callbackUrl });
+      console.log(`[handleSocialLogin] next-auth signIn 결과:`, result);
+    } catch (error) {
+      console.error(`[handleSocialLogin] 💥 치명적 에러 발생:`, error);
+      alert(`로그인 버튼 동작 중 에러가 발생했습니다: ${error.message || error}`);
     }
-    signIn(provider, { callbackUrl: callbackUrl });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
