@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { getAuthOptions } from '@/lib/auth';
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ teamId: string }> }) {
   try {

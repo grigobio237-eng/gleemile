@@ -1,5 +1,5 @@
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { TeamOnboardingForm } from '@/components/team/TeamOnboardingForm';
 
