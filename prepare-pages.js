@@ -101,6 +101,13 @@ console.error = function(...args) {
   const str = args.map(a => typeof a === 'object' && a ? (a.stack || JSON.stringify(a)) : String(a)).join(' ');
   globalThis.LAST_ERROR = str;
 };
+
+// Polyfill process.env
+if (typeof globalThis.process === 'undefined') {
+  globalThis.process = { env: {} };
+} else if (typeof globalThis.process.env === 'undefined') {
+  globalThis.process.env = {};
+}
 `
   },
   define: {
@@ -138,6 +145,10 @@ const origDefault = ${p2};
 export default {
   ...origDefault,
   async fetch(req, env, ctx) {
+    // 🔥 CRITICAL: Inject Cloudflare env variables into process.env for NextAuth
+    if (typeof process !== "undefined" && process.env) {
+      Object.assign(process.env, env);
+    }
     if (!env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL) {
       env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL = "https://placeholder.com";
     }
