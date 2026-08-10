@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     console.log('NextAuth signout API 호출됨');
     
     // 세션 확인
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(getAuthOptions());
     
     if (!session) {
       console.log('세션이 없음 - 이미 로그아웃 상태');

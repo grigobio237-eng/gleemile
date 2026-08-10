@@ -8,7 +8,7 @@ export async function POST(
 ) {
   try {
     const { teamId } = await params;
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(getAuthOptions());
     if (!session || !session.user || !session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

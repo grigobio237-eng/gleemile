@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth/next';
 export async function POST(req: Request) {
   try {
     // 1. 인증/인가 확인 (보안 강화)
-    // const session = await getServerSession(authOptions);
+    // const session = await getServerSession(getAuthOptions());
     // if (!session?.user) {
     //   return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     // }

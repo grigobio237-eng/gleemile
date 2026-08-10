@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { TeamOnboardingForm } from '@/components/team/TeamOnboardingForm';
 
 export default async function OnboardingPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(getAuthOptions());
 
   if (!session?.user) {
     redirect('/auth/signin?callbackUrl=/onboarding');

@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(getAuthOptions());
     
     // 주석 해제하여 권한 체크 진행 
     // if (!session || session.user?.mileRole !== 'leader') {

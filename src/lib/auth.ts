@@ -248,11 +248,3 @@ export const getAuthOptions = (): AuthOptions => ({
   },
   secret: process.env.NEXTAUTH_SECRET || '',
 });
-
-// Proxy to maintain backward compatibility for direct `authOptions` imports,
-// but evaluate properties dynamically so that `process.env` is fresh.
-export const authOptions = new Proxy({} as AuthOptions, {
-  get(target, prop) {
-    return getAuthOptions()[prop as keyof AuthOptions];
-  }
-});

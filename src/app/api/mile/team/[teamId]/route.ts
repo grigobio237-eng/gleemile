@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ teamId: string }> }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(getAuthOptions());
     if (!session?.user?.id) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }

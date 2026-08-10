@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(getAuthOptions());
     
     // role param을 쿼리로 임시로 받아서 테스트하기 위함 (실제로는 session.user.mileRole 사용)
     const { searchParams } = new URL(req.url);
