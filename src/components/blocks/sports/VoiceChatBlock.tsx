@@ -58,6 +58,53 @@ export default function VoiceChatBlock({ teamId }: VoiceChatBlockProps) {
     setIsOpen(false);
   };
 
+  // Prevent screen from sleeping while the Voice modal is open (Wake Lock API)
+  useEffect(() => {
+    let wakeLock: any = null;
+
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await (navigator as any).wakeLock.request('screen');
+        }
+      } catch (err) {
+        console.warn('Wake Lock request failed:', err);
+      }
+    };
+
+    const releaseWakeLock = async () => {
+      if (wakeLock) {
+        try {
+          await wakeLock.release();
+          wakeLock = null;
+        } catch (err) {
+          console.warn('Wake Lock release failed:', err);
+        }
+      }
+    };
+
+    if (isOpen) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+
+    // Re-acquire lock if visibility changes (e.g. user switches tabs and comes back)
+    const handleVisibilityChange = () => {
+      if (isOpen && wakeLock === null && document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      releaseWakeLock();
+    };
+  }, [isOpen]);
+
+
   return (
     <>
       <Card
