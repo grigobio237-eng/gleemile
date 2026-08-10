@@ -20,11 +20,11 @@ async function proxyAuthRequest(action: string, payload: any) {
   return await res.json();
 }
 
-export const authOptions: AuthOptions = {
+export const getAuthOptions = (): AuthOptions => ({
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
       authorization: {
         params: {
           scope: 'openid email profile',
@@ -38,8 +38,8 @@ export const authOptions: AuthOptions = {
       },
     }),
     KakaoProvider({
-      clientId: process.env.KAKAO_CLIENT_ID!,
-      clientSecret: process.env.KAKAO_CLIENT_SECRET!,
+      clientId: process.env.KAKAO_CLIENT_ID || '',
+      clientSecret: process.env.KAKAO_CLIENT_SECRET || '',
       checks: ['none'],
     }),
     CredentialsProvider({
@@ -246,7 +246,13 @@ export const authOptions: AuthOptions = {
   jwt: {
     maxAge: 30 * 24 * 60 * 60,
   },
-  secret: process.env.NEXTAUTH_SECRET,
-};
+  secret: process.env.NEXTAUTH_SECRET || '',
+});
 
-export default NextAuth(authOptions);
+// Proxy to maintain backward compatibility for direct `authOptions` imports,
+// but evaluate properties dynamically so that `process.env` is fresh.
+export const authOptions = new Proxy({} as AuthOptions, {
+  get(target, prop) {
+    return getAuthOptions()[prop as keyof AuthOptions];
+  }
+});
